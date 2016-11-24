@@ -10,15 +10,11 @@ var connectionError = function(err, connection, res) {
   return false;
 }
 
-var queryError = function(err, connection, res, send_error_response) {
-  send_error_response = send_error_response || false;
+var queryError = function(err, connection) {
   if (err) {
     console.error("ERROR: Query failed unexpectedly.\n");
     if (connection) {
       connection.release();
-    }
-    if (send_error_response) {
-      res.status(500).send('Query failed unexpectedly.');
     }
     return true;
   }
@@ -62,8 +58,8 @@ var bodyParser = require('body-parser');
 var mysql = require('mysql');
 // Note that the library's classes are not properties of the main export
 // so we require and promisifyAll them manually
-Promise.promisifyAll(require("mysql/lib/Connection").prototype);
-Promise.promisifyAll(require("mysql/lib/Pool").prototype);
+// Promise.promisifyAll(require("mysql/lib/Connection").prototype);
+// Promise.promisifyAll(require("mysql/lib/Pool").prototype);
 
 var pool = mysql.createPool({
   connectionLimit : 20,
