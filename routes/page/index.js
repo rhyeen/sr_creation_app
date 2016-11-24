@@ -96,8 +96,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
         for (i=0; i < rows.length; i++) {
           page['relative_pages_sections'].push({
             'name': rows[i]['name'],
-            'id': rows[i]['id'],
-            'title': rows[i]['name'],
+            'code': rows[i]['id'],
             'relative_pages': []
           });
         }
@@ -110,10 +109,29 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
     });
   }
 
-  function setRelativePages(connection, page, owner_id, page_id) {
+  function setRelativePages(connection, page, owner_id, section_code, index) {
     return new Promise(function(resolve, reject) {
-      // @TODO: need to make X many queries for each relative_pages_section: grabbing the id.toLowerCase() to create the table lookups
-      connection.query("SELECT `rr_summary`.`name` AS title, `ca_summary`.`id`, `ca_summary`.`name` AS name, `summary`, `summary_tags` FROM `rr_summary`, `mapping_ca_rr`, `ca_summary` WHERE `owner_id` = ? AND `rr_summary`.`id` = ? AND `ca_summary`.`id` = `ca_id`", [owner_id, page_id], function(err, rows, fields) {
+      var page_id = getPageId(page);
+      var page_code = getPageCode(page_id);
+      var page_code_abbr = page_code.toLowerCase();
+      var section_code_abbr = section_code.toLowerCase();
+      var alpha_ordered = [page_code_abbr, section_code_abbr].sort();
+      var query = "SELECT `{0}_summary`.`name` AS page_name, \
+      `{0}_summary`.`summary` AS page_summary, \
+      `{0}_summary`.`summary_tags` AS page_summary_tags, \
+      `{1}_summary`.`id` AS id, \
+      `{1}_summary`.`name` AS name, \
+      `{1}_summary`.`summary` AS summary, \
+      `{1}_summary`.`summary_tags` AS summary_tags \
+      FROM `{0}_summary`, `mapping_{2}_{3}`, `{1}_summary` \
+      WHERE `{0}_id` = ? AND \
+      `{0}_summary`.`id` = `{0}_id` AND \
+      `{1}_summary`.`id` = `{1}_id`";
+
+      query = query.format(page_code_abbr, section_code_abbr, alpha_ordered[0], alpha_ordered[1]);
+      // res.send(query);
+      // return;
+      connection.query(query, [page_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
@@ -121,10 +139,19 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
           });
         }
 
-        page['title'] = rows[0]['title'];
+        if (rows.length <= 0) {
+          return resolve({
+            page: page
+          });
+        }
+
+        page['name'] = rows[0]['page_name'];
+        page['summary'] = rows[0]['page_summary'];
+        page['summary_tags'] = rows[0]['page_summary_tags'];
+
         for (i=0; i < rows.length; i++) {
           // @TODO: find some way to identify the index of relative_pages_sections
-          page['relative_pages_sections'][0]['relative_pages'].push({
+          page['relative_pages_sections'][index]['relative_pages'].push({
             'name': rows[i]['name'],
             'summary': rows[i]['summary'],
             'id': rows[i]['id'],
@@ -137,6 +164,53 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
         });
       });
     });
+  }
+
+  function setPageInformation(connection, page) {
+    return new Promise(function(resolve, reject) {
+      if ('name' in page && page['name']) {
+        return resolve({
+          page: page
+        });
+      }
+      var page_id = getPageId(page);
+      var page_code = getPageCode(page_id);
+      var page_code_abbr = page_code.toLowerCase();
+      var query = "SELECT `name`, `summary`, `summary_tags` \
+      FROM `{0}_summary` \
+      WHERE `id` = ?";
+
+      query = query.format(page_code_abbr);
+      // res.send(query);
+      // return;
+      connection.query(query, [page_id], function(err, rows, fields) {
+        if (helpers.connection.queryError(err, connection)) {
+          return reject({
+            status: 500,
+            message: "Query failed unexpectedly."
+          });
+        }
+
+        if (rows.length <= 0) {
+          return reject({
+            status: 500,
+            message: "Could not find extry for {0} in the database.".format(page_id)
+          });
+        }
+
+        page['name'] = rows[0]['name'];
+        page['summary'] = rows[0]['summary'];
+        page['summary_tags'] = rows[0]['summary_tags'];
+
+        return resolve({
+          page: page
+        });
+      });
+    });
+  }
+
+  function orderStringsAlphabetically(strings) {
+    return 
   }
 
   function responseWithError(error, res) {
@@ -161,13 +235,21 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
       setPageId(connection, req, page, owner_id).then(function(data) {
         setRelativeLibraries(connection, page, owner_id).then(function(data) {
           setRelativePagesSections(connection, page, owner_id).then(function(data) {
-            setRelativePages(connection, page, owner_id, 'RR_1234567890123').then(function(data) {
-              if (connection) {
-                connection.release();
-              }
-              res.send(page);
-            }, function(error) {
-              responseWithError(error, res);
+            var i, calls = [];
+            relative_pages_sections = page['relative_pages_sections'];
+            for (i = 0; i < relative_pages_sections.length; i++) {
+              section_code = relative_pages_sections[i]['code'];
+              calls.push(setRelativePages(connection, page, owner_id, section_code, i))
+            }
+            Promise.all(calls).then(function() {
+              setPageInformation(connection, page).then(function(data) {
+                if (connection) {
+                  connection.release();
+                }
+                res.send(page);
+              }, function(error) {
+                responseWithError(error, res);
+              });
             });
           }, function(error) {
             responseWithError(error, res);

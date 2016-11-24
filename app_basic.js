@@ -1,3 +1,14 @@
+/**
+ * Add cability to do:
+ * 'The {0} {1} fox jumped over the {1} {0} cow'.format('quick', 'brown');
+ */
+String.prototype.format = function() {
+  var args = arguments;
+  return this.replace(/{(\d+)}/g, function(match, number) { 
+    return typeof args[number] != 'undefined' ? args[number] : match;
+  });
+};
+
 var connectionError = function(err, connection, res) {
   if (err) {
     console.error("ERROR: Connection could not be established.\n");
