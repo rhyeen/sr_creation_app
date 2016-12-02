@@ -36,6 +36,9 @@ var helpers = {
   connection: {
     connectionError: connectionError,
     queryError: queryError
+  },
+  constant: {
+    'PAGE_ID_LENGTH': 16
   }
 };
 
@@ -49,12 +52,14 @@ var STATICS = {
 };
 
 STATICS.route_roots = {
-  pages: STATICS.route_endpoints.secured + "/page"
+  pages: STATICS.route_endpoints.secured + "/page",
+  article: STATICS.route_endpoints.secured + "/article"
 };
 
 STATICS.routes = {
   healthcheck: STATICS.route_endpoints.default + "/healthcheck",
-  overview_page: STATICS.route_roots.pages + "/overview"
+  overview_page: STATICS.route_roots.pages + "/overview",
+  overview_article: STATICS.route_roots.article + "/overview"
 };
 
 //// required
@@ -86,6 +91,7 @@ app.set('view engine', 'jade');
 
 var healthcheck_service = require('./routes/healthcheck/index')(app, STATICS);
 var page_service = require('./routes/page/index')(app, STATICS, helpers, Promise, pool);
+var article_service = require('./routes/article/index')(app, STATICS, helpers, Promise, pool);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

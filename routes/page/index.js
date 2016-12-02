@@ -209,10 +209,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
     });
   }
 
-  function orderStringsAlphabetically(strings) {
-    return 
-  }
-
   function responseWithError(error, res) {
     var status = 500;
     var message = error;
