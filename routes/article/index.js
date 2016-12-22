@@ -93,6 +93,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
     var mock_article = {
       name: "The Standing Pony",
       type: "Inn",
+      id: "LO_1234567890124",
       owner: {
         id: "CH_1234567890123",
         name: "Barken Caderran"
@@ -106,20 +107,32 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
           {
             id: "DE_1234567890123",
             name: "Overview",
-            content: "A ruined old building that has been barely kept in one piece.  The door is a thick iron door, one that seems taken from a long lost dungeon (it has, in fact, been taken from Dallon Row's catacombs).  The place has a secret room in the basement that houses a family of Fey Goblins.",
-            content_tags: [
-              {
-                start: 14,
-                end: 20,
-                id: 'LO_1234567890124'
-              }
-            ]
+            content: {
+              mark_down: "A ruined old building that has been barely kept in one piece.  The door is a thick iron door, one that seems taken from a long lost dungeon (it has, in fact, been taken from {Dallon Row's catacombs}(TG_1234567890123)).  The place has a secret room in the basement that houses a family of Fey Goblins.",
+              partitions: [
+                {
+                  type: "text",
+                  text: "A ruined old building that has been barely kept in one piece.  The door is a thick iron door, one that seems taken from a long lost dungeon (it has, in fact, been taken from "
+                },
+                {
+                  type: "tag",
+                  text: "Dallon Row's catacombs",
+                  id: "TG_1234567890123",
+                  tag: {
+                    id: "LO_1234567890124"
+                  }
+                },
+                {
+                  type: "text",
+                  text: ").  The place has a secret room in the basement that houses a family of Fey Goblins."
+                }
+              ]
+            }
           },
           {
             id: "DE_1234567890124",
             name: "At the mantel",
-            content: "There is a small decoration of a fat cat with wings.",
-            content_tags: []
+            content: "There is a small decoration of a fat cat with wings."
           }
         ]
       },

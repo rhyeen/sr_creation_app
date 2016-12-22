@@ -53,13 +53,15 @@ var STATICS = {
 
 STATICS.route_roots = {
   pages: STATICS.route_endpoints.secured + "/page",
-  article: STATICS.route_endpoints.secured + "/article"
+  article: STATICS.route_endpoints.secured + "/article",
+  tag: STATICS.route_endpoints.secured + "/tag"
 };
 
 STATICS.routes = {
   healthcheck: STATICS.route_endpoints.default + "/healthcheck",
   overview_page: STATICS.route_roots.pages + "/overview",
-  overview_article: STATICS.route_roots.article + "/overview"
+  overview_article: STATICS.route_roots.article + "/overview",
+  render_tags: STATICS.route_roots.tag + "/render"
 };
 
 //// required
@@ -70,6 +72,7 @@ var Promise = require("bluebird");
 
 //// app-specific
 var bodyParser = require('body-parser');
+var jsonParser = bodyParser.json();
 // MySQL pools
 var mysql = require('mysql');
 // Note that the library's classes are not properties of the main export
@@ -92,6 +95,21 @@ app.set('view engine', 'jade');
 var healthcheck_service = require('./routes/healthcheck/index')(app, STATICS);
 var page_service = require('./routes/page/index')(app, STATICS, helpers, Promise, pool);
 var article_service = require('./routes/article/index')(app, STATICS, helpers, Promise, pool);
+var tag_service = require('./routes/tag/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+
+// for CORS - remove once we don't CORS anymore.
+app.options('*', function(req, res) {
+  var headers = {};
+  // IE8 does not allow domains to be specified, just the *
+  // headers["Access-Control-Allow-Origin"] = req.headers.origin;
+  headers["Access-Control-Allow-Origin"] = "*";
+  headers["Access-Control-Allow-Methods"] = "POST, GET, PUT, DELETE, OPTIONS";
+  headers["Access-Control-Allow-Credentials"] = false;
+  headers["Access-Control-Max-Age"] = '86400'; // 24 hours
+  headers["Access-Control-Allow-Headers"] = "X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept";
+  res.writeHead(200, headers);
+  res.end();
+});
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
