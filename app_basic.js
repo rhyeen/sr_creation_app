@@ -52,15 +52,17 @@ var STATICS = {
 };
 
 STATICS.route_roots = {
-  pages: STATICS.route_endpoints.secured + "/page",
+  page: STATICS.route_endpoints.secured + "/page",
   article: STATICS.route_endpoints.secured + "/article",
   tag: STATICS.route_endpoints.secured + "/tag"
 };
 
 STATICS.routes = {
+  page_summary: STATICS.route_roots.page + "/summary",
+  page_detail: STATICS.route_roots.page + "/detail",
+  page_links: STATICS.route_roots.page + "/page-links",
+  page_image: STATICS.route_roots.page + "/image",
   healthcheck: STATICS.route_endpoints.default + "/healthcheck",
-  overview_page: STATICS.route_roots.pages + "/overview",
-  overview_article: STATICS.route_roots.article + "/overview",
   render_tags: STATICS.route_roots.tag + "/render"
 };
 
@@ -93,8 +95,8 @@ app.use(logger('dev'));
 app.set('view engine', 'jade');
 
 var healthcheck_service = require('./routes/healthcheck/index')(app, STATICS);
-var page_service = require('./routes/page/index')(app, STATICS, helpers, Promise, pool);
-var article_service = require('./routes/article/index')(app, STATICS, helpers, Promise, pool);
+var page_service = require('./routes/page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var page_service = require('./routes/page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var tag_service = require('./routes/tag/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 
 // for CORS - remove once we don't CORS anymore.
