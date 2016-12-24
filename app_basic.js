@@ -9,6 +9,17 @@ String.prototype.format = function() {
   });
 };
 
+var generateId = function(id_starter) {
+  var id_size = 16 - id_starter.length - '_'.length;
+  var i;
+  var hash = "";
+  var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  for(i = 0; i < id_size; i++) {
+    hash += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return id_starter + '_' + hash;
+}
+
 var connectionError = function(err, connection, res) {
   if (err) {
     console.error("ERROR: Connection could not be established.\n");
@@ -23,7 +34,7 @@ var connectionError = function(err, connection, res) {
 
 var queryError = function(err, connection) {
   if (err) {
-    console.error("ERROR: Query failed unexpectedly.\n");
+    console.error("ERROR: Query failed unexpectedly:\n{0}".format(err));
     if (connection) {
       connection.release();
     }
@@ -36,6 +47,9 @@ var helpers = {
   connection: {
     connectionError: connectionError,
     queryError: queryError
+  },
+  generator: {
+    generateId: generateId
   },
   constant: {
     'PAGE_ID_LENGTH': 16
@@ -95,8 +109,13 @@ app.use(logger('dev'));
 app.set('view engine', 'jade');
 
 var healthcheck_service = require('./routes/healthcheck/index')(app, STATICS);
-var page_service = require('./routes/page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
-var page_service = require('./routes/page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var get_page_service = require('./routes/get-page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var delete_page_service = require('./routes/delete-page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var page_summary_service = require('./routes/page-summary/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var page_detail_service = require('./routes/page-detail/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var page_image_service = require('./routes/page-image/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var page_links_service = require('./routes/page-links/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+
 var tag_service = require('./routes/tag/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 
 // for CORS - remove once we don't CORS anymore.

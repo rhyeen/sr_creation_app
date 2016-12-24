@@ -149,7 +149,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var page_id;
     return new Promise(function(resolve, reject) {
       page_id = getPageId(page);
-      connection.query("SELECT * FROM `page_links` WHERE `page_id` = ? AND `disabled` != 1 ORDER BY `order_index` DESC", [page_id], function(err, rows, fields) {
+      connection.query("SELECT * FROM `page_links` WHERE `page_id` = ? AND `order_index` >= 0 ORDER BY `order_index` DESC", [page_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
@@ -173,13 +173,13 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     }
     for (i = 0; i < link_list_containers.length; i++) {
       link_list_container = link_list_containers[i];
-      link_type = extractLinkType(link_list_container);
+      link_type = link_list_container['type'];
       link_list = link_list_container['list'];
       if (link_list) {
         link_list = JSON.parse(link_list);
       }
       link_list_setter_function = getLinkListSetterFunction(link_type);
-      new_calls = getLinkListCalls(connection, page, link_list, link_list_setter_function, link_type)
+      new_calls = getLinkListCalls(connection, page, link_list, link_list_setter_function, link_type);
       calls.push.apply(calls, new_calls);
     }
     return calls;
@@ -189,10 +189,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     return new Promise(function(resolve, reject) {
       return resolve();
     });
-  }
-
-  function extractLinkType(link_list_container) {
-    return link_list_container['type'];
   }
 
   function getLinkListSetterFunction(link_type) {
