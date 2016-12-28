@@ -68,7 +68,17 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   }
 
   function addPageAuth(connection, page_id, user_id) {
-
+    return new Promise(function(resolve, reject) {
+      connection.query("INSERT INTO `page_auth` (`page_id`, `user_id`, `page_POST`, `page_PUT`, `page_GET`, `page_DELETE`, `disabled`) VALUES (?, ?, 1, 1, 1, 1, 0)", [page_id, user_id], function(err, rows, fields) {
+        if (helpers.connection.queryError(err, connection)) {
+          return reject({
+            status: 500,
+            message: "Query failed unexpectedly."
+          });
+        }
+        return resolve('Success');
+      });
+    });
   }
 
   function addDefaultPageEntries(connection, page_id, page_type, page_name, link_id) {
@@ -262,11 +272,11 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   }
 
   function setPageLink(connection, page_id, page, order_index) {
-    var page_type = getPageType(page);
-    var page_properties = getPageProperties(page);
-    var page_list = getPageList(list);
+    var type = getPageType(page);
+    var properties = getPageProperties(page);
+    var list = getPageList(page);
     return new Promise(function(resolve, reject) {
-      if (!page_type) {
+      if (!type) {
         reject({
           status: 500,
           message: "Page type not found in page default config"
@@ -288,21 +298,21 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     if (!('type' in page)) {
       return null;
     }
-    return defaults['type'];
+    return page['type'];
   }
 
   function getPageProperties(page) {
     if (!('properties' in page)) {
       return null;
     }
-    return defaults['properties'];
+    return page['properties'];
   }
 
   function getPageList(page) {
     if (!('list' in page)) {
       return null;
     }
-    return defaults['list'];
+    return page['list'];
   }
 
   function setPageSpecials(connection, page_id, defaults) {
@@ -318,15 +328,15 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       if (!link_id) {
         resolve('Success');
       }
-      connection.query("SELECT `list` FROM `page_links` WHERE `page_id` = ? AND `type` = ?", [link_id, page_type], function(err, rows, fields) {
+      connection.query("SELECT `list` FROM `page_links` WHERE `page_id` = ? AND `type` = ? LIMIT 1", [link_id, page_type], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
             message: "Query failed unexpectedly."
           });
         }
-        if (rows && rows.length > 0) {
-          list = JSON.parse(rows);
+        if (rows && rows.length > 0 && rows[0]['list']) {
+          list = JSON.parse(rows[0]['list']);
         }
         list.push(page_id);
         list = JSON.stringify(list);

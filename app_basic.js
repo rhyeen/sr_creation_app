@@ -109,8 +109,10 @@ app.use(logger('dev'));
 app.set('view engine', 'jade');
 
 var healthcheck_service = require('./routes/healthcheck/index')(app, STATICS);
+
 var get_page_service = require('./routes/get-page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var delete_page_service = require('./routes/delete-page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var put_page_service = require('./routes/put-page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_summary_service = require('./routes/page-summary/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_detail_service = require('./routes/page-detail/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_image_service = require('./routes/page-image/index')(app, STATICS, helpers, Promise, pool, jsonParser);

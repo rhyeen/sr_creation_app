@@ -6,7 +6,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var image_id = req.query.image;
     var image_name = body['name'];
     var image_caption = body['caption'];
-    var image_link = boday['link'];
+    var image_link = body['link'];
     var image_thumbnail = body['thumbnail'];
     var thumbnail_link = image_thumbnail['link'];
     
@@ -27,7 +27,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         res.status(400).send("Page id {0} not associated with {1}.".format(page_id, image_id));
         return;
       }
-      connection.query("UPDATE `page_images` SET `name` = ?, `caption` = ?, `link` = ?, `thumbnail_link` = ? WHERE `image_id` = ?", [image_name, image_link, thumbnail_link, image_id], function(err, rows, fields) {
+      connection.query("UPDATE `page_images` SET `name` = ?, `caption` = ?, `link` = ?, `thumbnail_link` = ? WHERE `image_id` = ?", [image_name, image_caption, image_link, thumbnail_link, image_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           res.status(500).send('Query failed unexpectedly.');
           if (connection) {
@@ -50,12 +50,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var body = req.body;
     var image_name = body['name'];
     var image_caption = body['caption'];
-    var image_link = boday['link'];
+    var image_link = body['link'];
     var image_thumbnail = body['thumbnail'];
     var thumbnail_link = image_thumbnail['link'];
 
     getUniqueId(connection, image_type, image_table, identifier).then(function(image_id) {
-      connection.query("INSERT INTO `page_images` (`image_id`, `name`, `link`, `thumbnail_link`) VALUES (?, ?, ?, ?)", [image_id, image_name, image_link, thumbnail_link], function(err, rows, fields) {
+      connection.query("INSERT INTO `page_images` (`image_id`, `name`, `link`, `thumbnail_link`, `caption`) VALUES (?, ?, ?, ?, ?)", [image_id, image_name, image_link, thumbnail_link, image_caption], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           res.status(500).send('Query failed unexpectedly.');
           if (connection) {
@@ -212,7 +212,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   function verifyUserHasAccess(connection, page_id, user_id, request_method) {
     var page_id;
     var method_column = 'page_{0}'.format(request_method);
-    var query = "SELECT `{0}` FROM `page_auth` WHERE `user_id` = ? AND `page_id` = ?  `disabled` != 1 LIMIT 1".format(method_column);
+    var query = "SELECT `{0}` FROM `page_auth` WHERE `user_id` = ? AND `page_id` = ? AND `disabled` != 1 LIMIT 1".format(method_column);
     return new Promise(function(resolve, reject) {
       connection.query(query, [user_id, page_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {

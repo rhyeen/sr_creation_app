@@ -55,7 +55,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   function verifyUserHasAccess(connection, page_id, user_id, request_method) {
     var page_id;
     var method_column = 'page_{0}'.format(request_method);
-    var query = "SELECT `{0}` FROM `page_auth` WHERE `user_id` = ? AND `page_id` = ?  `disabled` != 1  LIMIT 1".format(method_column);
+    var query = "SELECT `{0}` FROM `page_auth` WHERE `user_id` = ? AND `page_id` = ? AND `disabled` != 1  LIMIT 1".format(method_column);
     return new Promise(function(resolve, reject) {
       connection.query(query, [user_id, page_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {

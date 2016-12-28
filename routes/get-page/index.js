@@ -130,7 +130,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var page_id;
     return new Promise(function(resolve, reject) {
       page_id = getPageId(page);
-      connection.query("SELECT * FROM `page_specials` WHERE `page_id` = ? AND `disabled` != 1 ORDER BY `order_index` DESC", [page_id], function(err, rows, fields) {
+      connection.query("SELECT * FROM `page_specials` WHERE `page_id` = ? AND `order_index` > -1 ORDER BY `order_index` DESC", [page_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,

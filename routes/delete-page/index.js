@@ -28,7 +28,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
 
   function disablePage(connection, page_id) {
     return new Promise(function(resolve, reject) {
-      connection.query("UPDATE `page_auth` SET `disabled` = 0 WHERE `page_id` = ?", [page_id], function(err, rows, fields) {
+      connection.query("UPDATE `page_auth` SET `disabled` = 1 WHERE `page_id` = ?", [page_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
