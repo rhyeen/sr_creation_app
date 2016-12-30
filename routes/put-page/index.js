@@ -84,7 +84,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   function addDefaultPageEntries(connection, page_id, page_type, page_name, link_id) {
     return new Promise(function(resolve, reject) {
       getPageDefaults(connection, page_type).then(function(defaults) {
-        setPageSummary(connection, page_id, page_name, defaults).then(function(data) {
+        setPageSummary(connection, page_id, page_type, page_name, defaults).then(function(data) {
           setPageContent(connection, page_id, defaults).then(function(data) {
             setPageLinks(connection, page_id, defaults).then(function(data) {
               setPageSpecials(connection, page_id, defaults).then(function(data) {
@@ -131,11 +131,11 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function setPageSummary(connection, page_id, page_name, defaults) {
+  function setPageSummary(connection, page_id, page_type, page_name, defaults) {
     var summary_default_text = getSummaryDefaultText(defaults);
     var summary_default_properties = getSummaryDefaultProperties(defaults);
     return new Promise(function(resolve, reject) {
-      connection.query("INSERT INTO `page_summary` (`page_id`, `name`, `text`, `properties`) VALUES (?, ?, ? ,?)", [page_id, page_name, summary_default_text, summary_default_properties], function(err, rows, fields) {
+      connection.query("INSERT INTO `page_summary` (`page_id`, `type`, `name`, `text`, `properties`) VALUES (?, ?, ?, ? ,?)", [page_id, page_type, page_name, summary_default_text, summary_default_properties], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,

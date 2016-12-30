@@ -77,7 +77,8 @@ STATICS.routes = {
   page_links: STATICS.route_roots.page + "/page-links",
   page_image: STATICS.route_roots.page + "/image",
   healthcheck: STATICS.route_endpoints.default + "/healthcheck",
-  render_tags: STATICS.route_roots.tag + "/render"
+  render_tags: STATICS.route_roots.tag + "/render",
+  page_search: STATICS.route_roots.page + "/search"
 };
 
 //// required
@@ -117,6 +118,8 @@ var page_summary_service = require('./routes/page-summary/index')(app, STATICS, 
 var page_detail_service = require('./routes/page-detail/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_image_service = require('./routes/page-image/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_links_service = require('./routes/page-links/index')(app, STATICS, helpers, Promise, pool, jsonParser);
+var page_search_service = require('./routes/page-search/index')(app, STATICS, helpers, Promise, pool);
+
 
 var tag_service = require('./routes/tag/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 
