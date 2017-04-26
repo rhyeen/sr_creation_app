@@ -1,6 +1,9 @@
 module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   function findPartitions(mark_down) {
     var partitions = [];
+    if (!mark_down) {
+      return partitions;
+    }
     recurseFindPartitions(mark_down, -1, partitions);
     return partitions;
   }
@@ -148,46 +151,5 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       partitions: partitions
     });
     return;
-    if (!mark_down) {
-      res.send(detail_id);
-      return;
-    }
-    res.send(mark_down);
-    return;
-    res.send([
-      {
-        type: "text",
-        text: "A ruined old building that has been barely kept in one piece.  The door is a thick iron door, one that seems taken from a long lost dungeon (it has, in fact, been taken from "
-      },
-      {
-        type: "tag",
-        text: "Dallon Row's catacombs",
-        id: "TG_1234567890123",
-        tag: {
-          id: "LO_1234567890124"
-        }
-      },
-      {
-        type: "text",
-        text: ").  The place has a secret room in the basement that houses a family of Fey Goblins."
-      }
-    ]);
-    return;
-
-    var owner_id = 'US_1234567890123';
-    var article = {};
-    pool.getConnection(function(err, connection) {
-      if (helpers.connection.connectionError(err, connection, res)) {
-        return;
-      }      
-      setArticleDetails(connection, req, article, owner_id, res).then(function(data) {
-        if (connection) {
-          connection.release();
-        }
-        res.send(article);
-      }, function(error) {
-        responseWithError(error, res);
-      });
-    });
   });
 };

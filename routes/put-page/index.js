@@ -16,9 +16,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           });
         }
         if (rows.length <= 0) {
-          if (connection) {
-            connection.release();
-          }
           return reject({
             status: 400,
             message: "User does not have permissions."
@@ -353,9 +350,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function responseWithError(error, res) {
+  function responseWithError(error, res, connection, pool) {
     var status = 500;
     var message = error;
+    if (connection && connectionNotReleased(connection, pool)) {
+      connection.release();
+    }
     if ('status' in error) {
       status = error['status'];
     }
@@ -363,6 +363,10 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       message = error['message'];
     }
     res.status(status).send(message);
+  }
+
+  function connectionNotReleased(connection, pool) {
+    return pool._freeConnections.indexOf(connection) == -1;
   }
 
   app.put(STATICS.route_roots.page, function(req, res) {
@@ -383,21 +387,21 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         getUniqueId(connection, page_type, 'page_auth', 'page_id').then(function(page_id) {
           addPageAuth(connection, page_id, user_id).then(function(data) {
             addDefaultPageEntries(connection, page_id, page_type, page_name, link_id).then(function(data) {
-              if (connection) {
+              if (connection && connectionNotReleased(connection, pool)) {
                 connection.release();
               }
               res.send(page_id);
             }, function(error) {
-              responseWithError(error, res);
+              responseWithError(error, res, connection, pool);
             });
           }, function(error) {
-            responseWithError(error, res);
+            responseWithError(error, res, connection, pool);
           });
         }, function(error) {
-          responseWithError(error, res);
+          responseWithError(error, res, connection, pool);
         });
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });

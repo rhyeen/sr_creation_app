@@ -26,9 +26,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
     });
   }
 
-  function responseWithError(error, res) {
+  function responseWithError(error, res, connection, pool) {
     var status = 500;
     var message = error;
+    if (connection && connectionNotReleased(connection, pool)) {
+      connection.release();
+    }
     if ('status' in error) {
       status = error['status'];
     }
@@ -36,6 +39,10 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
       message = error['message'];
     }
     res.status(status).send(message);
+  }
+
+  function connectionNotReleased(connection, pool) {
+    return pool._freeConnections.indexOf(connection) == -1;
   }
 
   app.get(STATICS.routes.page_search, function(req, res) {
@@ -52,9 +59,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
         return;
       }
       getSearchResults(user_id, search_query, type, connection).then(function (results) {
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
         res.send(results);
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });

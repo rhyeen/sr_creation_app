@@ -20,9 +20,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           });
         }
         if (rows.length <= 0) {
-          if (connection) {
-            connection.release();
-          }
           return reject({
             status: 400,
             message: "User does not have a home page."
@@ -51,9 +48,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           });
         }
         if (rows.length <= 0) {
-          if (connection) {
-            connection.release();
-          }
           return reject({
             status: 400,
             message: "User does not have permissions."
@@ -411,9 +405,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     return setPageLinksContainer;
   }
 
-  function responseWithError(error, res) {
+  function responseWithError(error, res, connection, pool) {
     var status = 500;
     var message = error;
+    if (connection && connectionNotReleased(connection, pool)) {
+      connection.release();
+    }
     if ('status' in error) {
       status = error['status'];
     }
@@ -421,6 +418,10 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       message = error['message'];
     }
     res.status(status).send(message);
+  }
+
+  function connectionNotReleased(connection, pool) {
+    return pool._freeConnections.indexOf(connection) == -1;
   }
 
   app.get(STATICS.route_roots.page, function(req, res) {
@@ -443,36 +444,36 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
                     getPageLinksData(connection, page).then(function(data) {
                       setPageContainers(page, data);
                       Promise.all(getLinkListByType(connection, page, data)).then(function() {
-                        if (connection) {
+                        if (connection && connectionNotReleased(connection, pool)) {
                           connection.release();
                         }
                         res.send(page);
                       }, function(error) {
-                        responseWithError(error, res);
+                        responseWithError(error, res, connection, pool);
                       });
                     }, function(error) {
-                      responseWithError(error, res);
+                      responseWithError(error, res, connection, pool);
                     });
                   }, function(error) {
-                    responseWithError(error, res);
+                    responseWithError(error, res, connection, pool);
                   });
                 }, function(error) {
-                  responseWithError(error, res);
+                  responseWithError(error, res, connection, pool);
                 });
               }, function(error) {
-                responseWithError(error, res);
+                responseWithError(error, res, connection, pool);
               });
             }, function(error) {
-              responseWithError(error, res);
+              responseWithError(error, res, connection, pool);
             });
           }, function(error) {
-            responseWithError(error, res);
+            responseWithError(error, res, connection, pool);
           });
         }, function(error) {
-          responseWithError(error, res);
+          responseWithError(error, res, connection, pool);
         });
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });

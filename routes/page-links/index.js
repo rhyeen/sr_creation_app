@@ -6,9 +6,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var page_type = validatePageType(page_links);
     if (!page_type) {
       res.status(500).send('Unsupported list: make sure all ids are of the same type and the id type is valid');
-      if (connection) {
-        connection.release();
-      }
       return;
     }
     if (page_links) {
@@ -18,9 +15,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     connection.query("UPDATE `page_links` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [page_links, page_id, page_type], function(err, rows, fields) {
       if (helpers.connection.queryError(err, connection)) {
         res.status(500).send('Query failed unexpectedly.');
-        if (connection) {
-          connection.release();
-        }
         return;
       }
       res.send('Success');
@@ -65,9 +59,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           });
         }
         if (rows.length <= 0) {
-          if (connection) {
-            connection.release();
-          }
           return reject({
             status: 400,
             message: "User does not have permissions."
@@ -79,9 +70,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function responseWithError(error, res) {
+  function responseWithError(error, res, connection, pool) {
     var status = 500;
     var message = error;
+    if (connection && connectionNotReleased(connection, pool)) {
+      connection.release();
+    }
     if ('status' in error) {
       status = error['status'];
     }
@@ -89,6 +83,10 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       message = error['message'];
     }
     res.status(status).send(message);
+  }
+
+  function connectionNotReleased(connection, pool) {
+    return pool._freeConnections.indexOf(connection) == -1;
   }
 
   app.put(STATICS.routes.page_links, jsonParser, function(req, res) {
@@ -100,8 +98,11 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       }
       verifyUserHasAccess(connection, page_id, user_id, 'PUT').then(function(data) {
         updatePageLinks(req, res, connection);
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });
@@ -115,8 +116,11 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       }
       verifyUserHasAccess(connection, page_id, user_id, 'POST').then(function(data) {
         updatePageLinks(req, res, connection);
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });

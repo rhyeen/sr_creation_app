@@ -17,24 +17,15 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     connection.query(query, [page_id, detail_type], function(err, rows, fields) {
       if (helpers.connection.queryError(err, connection)) {
         res.status(500).send('Query failed unexpectedly.');
-        if (connection) {
-          connection.release();
-        }
         return;
       }
       if (!rows || rows.length <= 0) {
-        if (connection) {
-            connection.release();
-          }
         res.status(400).send("Page id {0} not associated with {1}.".format(page_id, detail_id));
         return;
       }
       connection.query("UPDATE `page_details` SET `name` = ?, `content_mark_down` = ?, `content_partitions` = ? WHERE `detail_id` = ?", [detail_name, content_mark_down, content_partitions, detail_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           res.status(500).send('Query failed unexpectedly.');
-          if (connection) {
-            connection.release();
-          }
           return;
         }
         res.send('Success');
@@ -43,7 +34,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function addDetail(req, res, connection) {
+  function addDetail(req, res, connection, pool) {
     var detail_list = [];
     var page_id = req.query.id;
     var detail_type = 'DE';
@@ -62,18 +53,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       connection.query("INSERT INTO `page_details` (`detail_id`, `name`, `content_mark_down`, `content_partitions`) VALUES (?, ?, ?, ?)", [detail_id, detail_name, content_mark_down, content_partitions], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           res.status(500).send('Query failed unexpectedly.');
-          if (connection) {
-            connection.release();
-          }
           return;
         }
 
         connection.query("SELECT `list` FROM `page_content` WHERE `page_id` = ? AND `type` = ? LIMIT 1", [page_id, detail_type], function(err, rows, fields) {
           if (helpers.connection.queryError(err, connection)) {
             res.status(500).send('Query failed unexpectedly.');
-            if (connection) {
-              connection.release();
-            }
             return;
           }
 
@@ -86,9 +71,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
             connection.query("UPDATE `page_content` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [detail_list, page_id, detail_type], function(err, rows, fields) {
               if (helpers.connection.queryError(err, connection)) {
                 res.status(500).send('Query failed unexpectedly.');
-                if (connection) {
-                  connection.release();
-                }
                 return;
               }
               res.send(detail_id);
@@ -100,9 +82,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
             connection.query("INSERT INTO `page_content` (`page_id`, `type`, `list`) VALUES (?, ?, ?)", [page_id, detail_type, detail_list], function(err, rows, fields) {
               if (helpers.connection.queryError(err, connection)) {
                 res.status(500).send('Query failed unexpectedly.');
-                if (connection) {
-                  connection.release();
-                }
                 return;
               }
               res.send(detail_id);
@@ -112,11 +91,11 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         });
       });
     }, function(error) {
-      responseWithError(error, res);
+      responseWithError(error, res, connection, pool);
     });
   }
 
-  function deleteDetail(req, res, connection) {
+  function deleteDetail(req, res, connection, pool) {
     var i, calls = [], new_list;
     var page_id = req.query.id;
     var detail_id = req.query.detail;
@@ -124,9 +103,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     connection.query(query, function(err, rows, fields) {
       if (helpers.connection.queryError(err, connection)) {
         res.status(500).send('Query failed unexpectedly.');
-        if (connection) {
-          connection.release();
-        }
         return;
       }
       if (rows.length <= 0) {
@@ -140,13 +116,10 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         calls.push(updateDetailList(connection, rows[i]['page_id'], new_list));
       }
       Promise.all(calls).then(function() {
-        if (connection) {
-          connection.release();
-        }
         res.send('Success');
         return;
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   }
@@ -226,9 +199,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           });
         }
         if (rows.length <= 0) {
-          if (connection) {
-            connection.release();
-          }
           return reject({
             status: 400,
             message: "User does not have permissions."
@@ -240,9 +210,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function responseWithError(error, res) {
+  function responseWithError(error, res, connection, pool) {
     var status = 500;
     var message = error;
+    if (connection && connectionNotReleased(connection, pool)) {
+      connection.release();
+    }
     if ('status' in error) {
       status = error['status'];
     }
@@ -250,6 +223,10 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       message = error['message'];
     }
     res.status(status).send(message);
+  }
+
+  function connectionNotReleased(connection, pool) {
+    return pool._freeConnections.indexOf(connection) == -1;
   }
 
   app.put(STATICS.routes.page_detail, jsonParser, function(req, res) {
@@ -261,8 +238,11 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       }
       verifyUserHasAccess(connection, page_id, user_id, 'PUT').then(function(data) {
         updateDetail(req, res, connection);
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });
@@ -275,9 +255,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         return;
       }
       verifyUserHasAccess(connection, page_id, user_id, 'POST').then(function(data) {
-        addDetail(req, res, connection);
+        addDetail(req, res, connection, pool);
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });
@@ -293,9 +276,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         return;
       }
       verifyUserHasAccess(connection, page_id, user_id, 'DELETE').then(function(data) {
-        deleteDetail(req, res, connection);
+        deleteDetail(req, res, connection, pool);
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });

@@ -6,6 +6,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var image_id = req.query.image;
     var image_name = body['name'];
     var image_caption = body['caption'];
+    var image_source = body['source'];
     var image_link = body['link'];
     var image_thumbnail = body['thumbnail'];
     var thumbnail_link = image_thumbnail['link'];
@@ -15,24 +16,16 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     connection.query(query, [page_id, image_type], function(err, rows, fields) {
       if (helpers.connection.queryError(err, connection)) {
         res.status(500).send('Query failed unexpectedly.');
-        if (connection) {
-          connection.release();
-        }
         return;
       }
       if (!rows || rows.length <= 0) {
-        if (connection) {
-            connection.release();
-          }
         res.status(400).send("Page id {0} not associated with {1}.".format(page_id, image_id));
         return;
       }
-      connection.query("UPDATE `page_images` SET `name` = ?, `caption` = ?, `link` = ?, `thumbnail_link` = ? WHERE `image_id` = ?", [image_name, image_caption, image_link, thumbnail_link, image_id], function(err, rows, fields) {
+      connection.query("UPDATE `page_images` SET `name` = ?, `caption` = ?, `link` = ?, `thumbnail_link` = ?, `source` = ? WHERE `image_id` = ?", [image_name, image_caption, image_link, thumbnail_link, image_source, image_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           res.status(500).send('Query failed unexpectedly.');
-          if (connection) {
-            connection.release();
-          }
+
           return;
         }
         res.send('Success');
@@ -41,7 +34,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function addImage(req, res, connection) {
+  function addImage(req, res, connection, pool) {
     var image_list = [];
     var page_id = req.query.id;
     var image_type = 'IM';
@@ -50,26 +43,21 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var body = req.body;
     var image_name = body['name'];
     var image_caption = body['caption'];
+    var image_source = body['source'];
     var image_link = body['link'];
     var image_thumbnail = body['thumbnail'];
     var thumbnail_link = image_thumbnail['link'];
 
     getUniqueId(connection, image_type, image_table, identifier).then(function(image_id) {
-      connection.query("INSERT INTO `page_images` (`image_id`, `name`, `link`, `thumbnail_link`, `caption`) VALUES (?, ?, ?, ?, ?)", [image_id, image_name, image_link, thumbnail_link, image_caption], function(err, rows, fields) {
+      connection.query("INSERT INTO `page_images` (`image_id`, `name`, `link`, `thumbnail_link`, `caption`, `source`) VALUES (?, ?, ?, ?, ?)", [image_id, image_name, image_link, thumbnail_link, image_caption, image_source], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           res.status(500).send('Query failed unexpectedly.');
-          if (connection) {
-            connection.release();
-          }
           return;
         }
 
         connection.query("SELECT `list` FROM `page_content` WHERE `page_id` = ? AND `type` = ? LIMIT 1", [page_id, image_type], function(err, rows, fields) {
           if (helpers.connection.queryError(err, connection)) {
             res.status(500).send('Query failed unexpectedly.');
-            if (connection) {
-              connection.release();
-            }
             return;
           }
 
@@ -82,9 +70,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
             connection.query("UPDATE `page_content` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [image_list, page_id, image_type], function(err, rows, fields) {
               if (helpers.connection.queryError(err, connection)) {
                 res.status(500).send('Query failed unexpectedly.');
-                if (connection) {
-                  connection.release();
-                }
                 return;
               }
               res.send(image_id);
@@ -96,9 +81,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
             connection.query("INSERT INTO `page_content` (`page_id`, `type`, `list`) VALUES (?, ?, ?)", [page_id, image_type, image_list], function(err, rows, fields) {
               if (helpers.connection.queryError(err, connection)) {
                 res.status(500).send('Query failed unexpectedly.');
-                if (connection) {
-                  connection.release();
-                }
                 return;
               }
               res.send(image_id);
@@ -108,11 +90,11 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         });
       });
     }, function(error) {
-      responseWithError(error, res);
+      responseWithError(error, res, connection, pool);
     });
   }
 
-  function deleteImage(req, res, connection) {
+  function deleteImage(req, res, connection, pool) {
     var i, calls = [], new_list;
     var page_id = req.query.id;
     var image_id = req.query.image;
@@ -120,9 +102,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     connection.query(query, function(err, rows, fields) {
       if (helpers.connection.queryError(err, connection)) {
         res.status(500).send('Query failed unexpectedly.');
-        if (connection) {
-          connection.release();
-        }
         return;
       }
       if (rows.length <= 0) {
@@ -136,13 +115,10 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         calls.push(updateImageList(connection, rows[i]['page_id'], new_list));
       }
       Promise.all(calls).then(function() {
-        if (connection) {
-          connection.release();
-        }
         res.send('Success');
         return;
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   }
@@ -222,9 +198,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           });
         }
         if (rows.length <= 0) {
-          if (connection) {
-            connection.release();
-          }
           return reject({
             status: 400,
             message: "User does not have permissions."
@@ -236,9 +209,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function responseWithError(error, res) {
+  function responseWithError(error, res, connection, pool) {
     var status = 500;
     var message = error;
+    if (connection && connectionNotReleased(connection, pool)) {
+      connection.release();
+    }
     if ('status' in error) {
       status = error['status'];
     }
@@ -246,6 +222,10 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       message = error['message'];
     }
     res.status(status).send(message);
+  }
+
+  function connectionNotReleased(connection, pool) {
+    return pool._freeConnections.indexOf(connection) == -1;
   }
 
   app.put(STATICS.routes.page_image, jsonParser, function(req, res) {
@@ -257,8 +237,11 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       }
       verifyUserHasAccess(connection, page_id, user_id, 'PUT').then(function(data) {
         updateImage(req, res, connection);
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });
@@ -271,9 +254,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         return;
       }
       verifyUserHasAccess(connection, page_id, user_id, 'POST').then(function(data) {
-        addImage(req, res, connection);
+        addImage(req, res, connection, pool);
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });
@@ -289,9 +275,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         return;
       }
       verifyUserHasAccess(connection, page_id, user_id, 'DELETE').then(function(data) {
-        deleteImage(req, res, connection);
+        deleteImage(req, res, connection, pool);
+        if (connection && connectionNotReleased(connection, pool)) {
+          connection.release();
+        }
       }, function(error) {
-        responseWithError(error, res);
+        responseWithError(error, res, connection, pool);
       });
     });
   });
