@@ -67,8 +67,10 @@ var STATICS = {
 
 STATICS.route_roots = {
   page: STATICS.route_endpoints.secured + "/page",
+  file: STATICS.route_endpoints.secured + "/file",
   article: STATICS.route_endpoints.secured + "/article",
-  tag: STATICS.route_endpoints.secured + "/tag"
+  tag: STATICS.route_endpoints.secured + "/tag",
+  private_files: STATICS.route_endpoints.private_serve + "/files"
 };
 
 STATICS.routes = {
@@ -80,14 +82,17 @@ STATICS.routes = {
   page_images: STATICS.route_roots.page + "/images",
   healthcheck: STATICS.route_endpoints.default + "/healthcheck",
   render_tags: STATICS.route_roots.tag + "/render",
-  page_search: STATICS.route_roots.page + "/search"
+  page_search: STATICS.route_roots.page + "/search",
+  private_images: STATICS.route_roots.private_files + "/images"
 };
 
 //// required
+var fs = require('fs');
 var express = require('express');
 var path = require('path');
 var logger = require('morgan');
 var Promise = require("bluebird");
+var formidable = require('formidable');
 
 //// app-specific
 var bodyParser = require('body-parser');
@@ -136,6 +141,7 @@ var page_image_service = require('./routes/page-image/index')(app, STATICS, help
 var page_image_service = require('./routes/page-images/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_links_service = require('./routes/page-links/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_search_service = require('./routes/page-search/index')(app, STATICS, helpers, Promise, pool);
+var file_service = require('./routes/file/index')(app, STATICS, helpers, formidable, fs, path);
 
 var tag_service = require('./routes/tag/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 
