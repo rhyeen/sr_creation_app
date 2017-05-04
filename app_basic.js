@@ -88,12 +88,11 @@ STATICS.routes = {
 
 //// required
 var fs = require('fs');
-var os = require('os');
 var express = require('express');
 var path = require('path');
 var logger = require('morgan');
 var Promise = require("bluebird");
-var busboy = require('busboy');
+var Busboy = require("busboy");
 
 //// app-specific
 var bodyParser = require('body-parser');
@@ -142,7 +141,7 @@ var page_image_service = require('./routes/page-image/index')(app, STATICS, help
 var page_image_service = require('./routes/page-images/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_links_service = require('./routes/page-links/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_search_service = require('./routes/page-search/index')(app, STATICS, helpers, Promise, pool);
-var file_service = require('./routes/file/index')(app, STATICS, helpers, busboy, fs, path, os);
+var file_service = require('./routes/file/index')(app, STATICS, helpers, Busboy, fs, path);
 
 var tag_service = require('./routes/tag/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 
