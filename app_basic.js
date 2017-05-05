@@ -10,14 +10,19 @@ String.prototype.format = function() {
 };
 
 var generateId = function(id_starter) {
-  var id_size = 16 - id_starter.length - '_'.length;
+  if (id_starter) {
+    id_starter = id_starter + '_';
+  } else {
+    id_starter = '';
+  }
+  var id_size = 16 - id_starter.length;
   var i;
   var hash = "";
   var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   for(i = 0; i < id_size; i++) {
     hash += possible.charAt(Math.floor(Math.random() * possible.length));
   }
-  return id_starter + '_' + hash;
+  return id_starter + hash;
 }
 
 var connectionError = function(err, connection, res) {
@@ -83,7 +88,10 @@ STATICS.routes = {
   healthcheck: STATICS.route_endpoints.default + "/healthcheck",
   render_tags: STATICS.route_roots.tag + "/render",
   page_search: STATICS.route_roots.page + "/search",
-  private_images: STATICS.route_roots.private_files + "/images"
+  image: STATICS.route_roots.file + "/image",
+  thumbnail: STATICS.route_roots.file + "/image/thumbnail",
+  private_images: STATICS.route_roots.private_files + "/images",
+  private_thumbnails: STATICS.route_roots.private_files + "/thumbnails"
 };
 
 //// required
@@ -141,7 +149,7 @@ var page_image_service = require('./routes/page-image/index')(app, STATICS, help
 var page_image_service = require('./routes/page-images/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_links_service = require('./routes/page-links/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_search_service = require('./routes/page-search/index')(app, STATICS, helpers, Promise, pool);
-var file_service = require('./routes/file/index')(app, STATICS, helpers, Busboy, fs, path);
+var image_service = require('./routes/image/index')(app, STATICS, helpers, Busboy, fs, path);
 
 var tag_service = require('./routes/tag/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 
