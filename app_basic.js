@@ -57,7 +57,8 @@ var helpers = {
     generateId: generateId
   },
   constant: {
-    'PAGE_ID_LENGTH': 16
+    'PAGE_ID_LENGTH': 16,
+    'MAX_ID_GENERATION_RETRIES': 10
   }
 };
 

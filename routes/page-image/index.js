@@ -49,7 +49,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var thumbnail_link = image_thumbnail['link'];
 
     getUniqueId(connection, image_type, image_table, identifier).then(function(image_id) {
-      connection.query("INSERT INTO `page_images` (`image_id`, `name`, `link`, `thumbnail_link`, `caption`, `source`) VALUES (?, ?, ?, ?, ?)", [image_id, image_name, image_link, thumbnail_link, image_caption, image_source], function(err, rows, fields) {
+      connection.query("INSERT INTO `page_images` (`image_id`, `name`, `link`, `thumbnail_link`, `caption`, `source`) VALUES (?, ?, ?, ?, ?, ?)", [image_id, image_name, image_link, thumbnail_link, image_caption, image_source], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           res.status(500).send('Query failed unexpectedly.');
           return;

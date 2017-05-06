@@ -11,6 +11,13 @@ module.exports = function(app, STATICS, helpers, Busboy, fs, path) {
 
   function saveImage(req, res, target_directory) {
     var file_name = getFileName(target_directory);
+    if (!file_name) {
+      console.error("UNIQUE_FILE_NAME_NOT_FOUND");
+      res.status(500).send({
+        error: "UNIQUE_FILE_NAME_NOT_FOUND",
+        message: "Unable to find a unique file name. This should be near impossible. Please try again.  If this error occurs again, please contact the development team."
+      });
+    }
     var guessed_extension = '.jpg';
     var full_file_name = file_name + guessed_extension;
     var target_path = path.resolve(target_directory, full_file_name);
@@ -33,7 +40,7 @@ module.exports = function(app, STATICS, helpers, Busboy, fs, path) {
     busboy.on('finish', function() {
       write_stream.end();
       if (guessed_extension !== '.jpg') {
-        var full_file_name = file_name + guessed_extension;
+        full_file_name = file_name + guessed_extension;
         var new_target_path = path.resolve(target_directory, full_file_name);
         fs.renameSync(target_path, new_target_path);
       }
@@ -54,7 +61,9 @@ module.exports = function(app, STATICS, helpers, Busboy, fs, path) {
       return null;
     }
     var file_name = helpers.generator.generateId();
-    if (fs.existsSync(path.resolve(target_directory, file_name))) {
+    if (fs.existsSync(path.resolve(target_directory, file_name + ".jpg"))) {
+      return getFileNameRecurse(target_directory, retries + 1);
+    } else if (fs.existsSync(path.resolve(target_directory, file_name + ".png"))) {
       return getFileNameRecurse(target_directory, retries + 1);
     }
     return file_name;
