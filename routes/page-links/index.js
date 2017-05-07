@@ -1,24 +1,39 @@
 module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
+  
   function updatePageLinks(req, res, connection) {
-    var body = req.body;
-    var page_id = req.query.id;
-    var page_links = body['links'];
-    var page_type = validatePageType(page_links);
-    if (!page_type) {
-      res.status(500).send('Unsupported list: make sure all ids are of the same type and the id type is valid');
-      return;
-    }
-    if (page_links) {
-      page_links = JSON.stringify(page_links);
-    }
- 
-    connection.query("UPDATE `page_links` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [page_links, page_id, page_type], function(err, rows, fields) {
-      if (helpers.connection.queryError(err, connection)) {
-        res.status(500).send('Query failed unexpectedly.');
+    return new Promise(function(resolve, reject) {
+      var i;
+      var updateOrderCalls = [];
+      var body = req.body;
+      var page_id = req.query.id;
+      var page_links = body['links'];
+      var page_type = validatePageType(page_links);
+      if (!page_type) {
+        res.status(500).send('Unsupported list: make sure all ids are of the same type and the id type is valid');
         return;
       }
-      res.send('Success');
-      return;
+      for (i = 0; i < page_links.length; i++) {
+        updateOrderCalls.push(updateOrder(connection, page_id, page_links[i], i));
+      }
+      Promise.all(updateOrderCalls).then(function() {
+        resolve();
+      }, function(error) {
+        reject(error);
+      });
+    });
+  }
+
+  function updateOrder(connection, page_id, link_id, index) {
+    return new Promise(function(resolve, reject) {
+      connection.query("UPDATE `page_id_bind` SET `order` = ? WHERE `page_id` = ? AND `bound_id` = ?", [index, page_id, link_id], function(err, rows, fields) {
+        if (helpers.connection.queryError(err, connection)) {
+          return reject({
+            status: 500,
+            message: 'Query failed unexpectedly.'
+          });
+        }
+        return resolve();
+      });
     });
   }
 
@@ -96,11 +111,15 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       if (helpers.connection.connectionError(err, connection, res)) {
         return;
       }
-      verifyUserHasAccess(connection, page_id, user_id, 'PUT').then(function(data) {
-        updatePageLinks(req, res, connection);
-        if (connection && connectionNotReleased(connection, pool)) {
-          connection.release();
-        }
+      verifyUserHasAccess(connection, page_id, user_id, 'POST').then(function(data) {
+        updatePageLinks(req, res, connection).then(function(data) {
+          if (connection && connectionNotReleased(connection, pool)) {
+            connection.release();
+            res.send('Success');
+          }
+        }, function(error) {
+          responseWithError(error, res, connection, pool);
+        });
       }, function(error) {
         responseWithError(error, res, connection, pool);
       });
@@ -115,10 +134,14 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         return;
       }
       verifyUserHasAccess(connection, page_id, user_id, 'POST').then(function(data) {
-        updatePageLinks(req, res, connection);
-        if (connection && connectionNotReleased(connection, pool)) {
-          connection.release();
-        }
+        updatePageLinks(req, res, connection).then(function(data) {
+          if (connection && connectionNotReleased(connection, pool)) {
+            connection.release();
+            res.send('Success');
+          }
+        }, function(error) {
+          responseWithError(error, res, connection, pool);
+        });
       }, function(error) {
         responseWithError(error, res, connection, pool);
       });

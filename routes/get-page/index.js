@@ -111,7 +111,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           return resolve(page);
         }
         var properties;
-        var getPageContentIdsCalls = [];
+        var getPageBoundIdsCalls = [];
         for (i = 0; i < properties_list.length; i++) {
           properties = properties_list[i];
           data_container.push({
@@ -119,9 +119,9 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
             'properties': properties['properties'],
             'list': []
           });
-          getPageContentIdsCalls.push(getPageContentIds(connection, page, data_container[i]));
+          getPageBoundIdsCalls.push(getPageBoundIds(connection, page, data_container[i]));
         }
-        Promise.all(getPageContentIdsCalls).then(function() {
+        Promise.all(getPageBoundIdsCalls).then(function() {
           resolve(data_container);
         }, function(error) {
           console.error(error);
@@ -158,7 +158,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function getPageContentIds(connection, page, data_container) {
+  function getPageBoundIds(connection, page, data_container) {
     return new Promise(function(resolve, reject) {  
       page_id = getPageId(page);
       connection.query("SELECT `bound_id` FROM `page_id_bind` WHERE `page_id` = ? AND `type` = ? ORDER BY `order` ASC", [page_id, data_container['type']], function(err, rows, fields) {
@@ -181,10 +181,42 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   }
 
   function getPageSpecialsData(connection, page) {
+    var i;
     var page_id;
+    var data_container = [];
     return new Promise(function(resolve, reject) {
+      getPageSpecialProperties(connection, page).then(function (properties_list) {
+        if (!properties_list || properties_list.length <= 0) {
+          return resolve(page);
+        }
+        var properties;
+        var getPageBoundIdsCalls = [];
+        for (i = 0; i < properties_list.length; i++) {
+          properties = properties_list[i];
+          data_container.push({
+            'type': properties['type'],
+            'properties': properties['properties'],
+            'list': []
+          });
+          getPageBoundIdsCalls.push(getPageBoundIds(connection, page, data_container[i]));
+        }
+        Promise.all(getPageBoundIdsCalls).then(function() {
+          resolve(data_container);
+        }, function(error) {
+          console.error(error);
+          reject(error);
+        });
+      }, function(error) {
+        console.error(error);
+        return reject(error);
+      });
+    });
+  }
+
+  function getPageSpecialProperties(connection, page) {
+    return new Promise(function(resolve, reject) {  
       page_id = getPageId(page);
-      connection.query("SELECT * FROM `page_specials` WHERE `page_id` = ? AND `order_index` > -1 ORDER BY `order_index` DESC", [page_id], function(err, rows, fields) {
+      connection.query("SELECT `type`, `properties` FROM `page_specials` WHERE `page_id` = ? AND `order_index` > -1 ORDER BY `order_index` DESC", [page_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
@@ -193,6 +225,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         }
         if (rows.length <= 0) {
           return resolve(null);
+        }
+        var row;
+        for (row of rows) {
+          if (row['properties']) {
+            row['properties'] = JSON.parse(row['properties']);
+          }
         }
         return resolve(rows);
       });
@@ -200,10 +238,42 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   }
 
   function getPageLinksData(connection, page) {
+    var i;
     var page_id;
+    var data_container = [];
     return new Promise(function(resolve, reject) {
+      getPageLinksProperties(connection, page).then(function (properties_list) {
+        if (!properties_list || properties_list.length <= 0) {
+          return resolve(page);
+        }
+        var properties;
+        var getPageBoundIdsCalls = [];
+        for (i = 0; i < properties_list.length; i++) {
+          properties = properties_list[i];
+          data_container.push({
+            'type': properties['type'],
+            'properties': properties['properties'],
+            'list': []
+          });
+          getPageBoundIdsCalls.push(getPageBoundIds(connection, page, data_container[i]));
+        }
+        Promise.all(getPageBoundIdsCalls).then(function() {
+          resolve(data_container);
+        }, function(error) {
+          console.error(error);
+          reject(error);
+        });
+      }, function(error) {
+        console.error(error);
+        return reject(error);
+      });
+    });
+  }
+
+  function getPageLinksProperties(connection, page) {
+    return new Promise(function(resolve, reject) {  
       page_id = getPageId(page);
-      connection.query("SELECT * FROM `page_links` WHERE `page_id` = ? AND `order_index` >= 0 ORDER BY `order_index` DESC", [page_id], function(err, rows, fields) {
+      connection.query("SELECT `type`, `properties` FROM `page_links` WHERE `page_id` = ? AND `order_index` > -1 ORDER BY `order_index` DESC", [page_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
@@ -212,6 +282,12 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         }
         if (rows.length <= 0) {
           return resolve(null);
+        }
+        var row;
+        for (row of rows) {
+          if (row['properties']) {
+            row['properties'] = JSON.parse(row['properties']);
+          }
         }
         return resolve(rows);
       });

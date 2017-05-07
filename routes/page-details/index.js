@@ -1,19 +1,37 @@
 module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
+  
   function updateDetails(req, res, connection) {
-    var body = req.body;
-    var page_id = req.query.id;
-    var page_details = body['details'];
-    var content_type = 'DE';
-    if (page_details) {
-      page_details = JSON.stringify(page_details);
-    }
-    connection.query("UPDATE `page_content` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [page_details, page_id, content_type], function(err, rows, fields) {
-      if (helpers.connection.queryError(err, connection)) {
-        res.status(500).send('Query failed unexpectedly.');
+    return new Promise(function(resolve, reject) {
+      var i;
+      var updateOrderCalls = [];
+      var body = req.body;
+      var page_id = req.query.id;
+      var page_details = body['details'];
+      if (!page_details) {
         return;
       }
-      res.send('Success');
-      return;
+      for (i = 0; i < page_details.length; i++) {
+        updateOrderCalls.push(updateOrder(connection, page_id, page_details[i], i));
+      }
+      Promise.all(updateOrderCalls).then(function() {
+        resolve();
+      }, function(error) {
+        reject(error);
+      });
+    });
+  }
+
+  function updateOrder(connection, page_id, detail_id, index) {
+    return new Promise(function(resolve, reject) {
+      connection.query("UPDATE `page_id_bind` SET `order` = ? WHERE `page_id` = ? AND `bound_id` = ?", [index, page_id, detail_id], function(err, rows, fields) {
+        if (helpers.connection.queryError(err, connection)) {
+          return reject({
+            status: 500,
+            message: 'Query failed unexpectedly.'
+          });
+        }
+        return resolve();
+      });
     });
   }
 
@@ -35,7 +53,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
             message: "User does not have permissions."
           });
         }
-
         return resolve();
       });
     });
@@ -68,10 +85,13 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         return;
       }
       verifyUserHasAccess(connection, page_id, user_id, 'PUT').then(function(data) {
-        updateDetails(req, res, connection);
-        if (connection && connectionNotReleased(connection, pool)) {
-          connection.release();
-        }
+        updateDetails(req, res, connection).then(function(data) {
+          if (connection && connectionNotReleased(connection, pool)) {
+            connection.release();
+          }
+        }, function(error) {
+          responseWithError(error, res, connection, pool);
+        });
       }, function(error) {
         responseWithError(error, res, connection, pool);
       });
@@ -85,11 +105,15 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
       if (helpers.connection.connectionError(err, connection, res)) {
         return;
       }
-      verifyUserHasAccess(connection, page_id, user_id, 'POST').then(function(data) {
-        updateDetails(req, res, connection);
-        if (connection && connectionNotReleased(connection, pool)) {
-          connection.release();
-        }
+      verifyUserHasAccess(connection, page_id, user_id, 'PUT').then(function(data) {
+        updateDetails(req, res, connection).then(function(data) {
+          if (connection && connectionNotReleased(connection, pool)) {
+            connection.release();
+          }
+          res.send('Success');
+        }, function(error) {
+          responseWithError(error, res, connection, pool);
+        });
       }, function(error) {
         responseWithError(error, res, connection, pool);
       });

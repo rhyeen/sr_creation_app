@@ -11,7 +11,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
   function getPageSearchResults(user_id, search_query, type, connection) {
     return new Promise(function(resolve, reject) {
       var i, properties;
-      var query = "SELECT `name`, `text`, `properties`, `page_summary`.`page_id` AS 'id' FROM `page_summary` JOIN `page_auth` ON `page_summary`.`page_id` = `page_auth`.`page_id` WHERE `user_id` = ? AND `page_GET` = 1 AND `type` = ? AND `name` LIKE" + connection.escape('%' + search_query + '%');
+      var query = "SELECT `page_summary`.`name` AS `name`, `page_summary`.`text` AS `text`, `page_summary`.`properties` AS `properties`, `page_summary`.`page_id` AS 'id' FROM `page_summary` INNER JOIN `page_auth` ON `page_summary`.`page_id` = `page_auth`.`page_id` WHERE `page_auth`.`user_id` = ? AND `page_auth`.`page_GET` = 1 AND `page_summary`.`type` = ? AND `page_summary`.`name` LIKE" + connection.escape('%' + search_query + '%');
       connection.query(query, [user_id, type], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
@@ -37,8 +37,8 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
   function getImageSearchResults(user_id, search_query, type, connection) {
     return new Promise(function(resolve, reject) {
       var i, properties;
-      var query = "SELECT `name`, `text`, `properties`, `page_summary`.`page_id` AS 'id' FROM `page_summary` JOIN `page_auth` ON `page_summary`.`page_id` = `page_auth`.`page_id` WHERE `user_id` = ? AND `page_GET` = 1 AND `type` = ? AND `name` LIKE" + connection.escape('%' + search_query + '%');
-      connection.query(query, [user_id, type], function(err, rows, fields) {
+      var query = "SELECT `page_images`.`image_id` AS `id`, `page_images`.`name` AS `name`, `page_images`.`caption` AS `caption`, `page_images`.`link` AS `link`, `page_images`.`thumbnail_link` AS `thumbnail_link`, `page_images`.`source` AS `source` FROM `page_images` INNER JOIN `page_id_bind` ON `page_images`.`image_id` = `page_id_bind`.`bound_id` INNER JOIN `page_auth` ON `page_auth`.`page_id` = `page_id_bind`.`page_id` WHERE `page_auth`.`user_id` = ? AND `page_GET` = 1 AND `page_images`.`name` LIKE" + connection.escape('%' + search_query + '%');
+      connection.query(query, [user_id], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
@@ -47,13 +47,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
         }
         if (!rows || rows.length <= 0) {
           return resolve([]);
-        }
-        for (i = 0; i < rows.length; i++) {
-          properties = rows[i]['properties'];
-          if (properties) {
-            properties = JSON.parse(properties);
-          }
-          rows[i]['properties'] = properties;
         }
         return resolve(rows);
       });

@@ -1,19 +1,33 @@
 module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   function updateImages(req, res, connection) {
-    var body = req.body;
-    var page_id = req.query.id;
-    var page_images = body['images'];
-    var content_type = 'IM';
-    if (page_images) {
-      page_images = JSON.stringify(page_images);
-    }
-    connection.query("UPDATE `page_content` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [page_images, page_id, content_type], function(err, rows, fields) {
-      if (helpers.connection.queryError(err, connection)) {
-        res.status(500).send('Query failed unexpectedly.');
-        return;
+    return new Promise(function(resolve, reject) {
+      var i;
+      var updateOrderCalls = [];
+      var body = req.body;
+      var page_id = req.query.id;
+      var page_images = body['images'];
+      for (i = 0; i < page_images.length; i++) {
+        updateOrderCalls.push(updateOrder(connection, page_id, page_images[i], i));
       }
-      res.send('Success');
-      return;
+      Promise.all(updateOrderCalls).then(function() {
+        resolve();
+      }, function(error) {
+        reject(error);
+      });
+    });
+  }
+
+  function updateOrder(connection, page_id, link_id, index) {
+    return new Promise(function(resolve, reject) {
+      connection.query("UPDATE `page_id_bind` SET `order` = ? WHERE `page_id` = ? AND `bound_id` = ?", [index, page_id, link_id], function(err, rows, fields) {
+        if (helpers.connection.queryError(err, connection)) {
+          return reject({
+            status: 500,
+            message: 'Query failed unexpectedly.'
+          });
+        }
+        return resolve();
+      });
     });
   }
 
@@ -68,10 +82,14 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         return;
       }
       verifyUserHasAccess(connection, page_id, user_id, 'PUT').then(function(data) {
-        updateImages(req, res, connection);
-        if (connection && connectionNotReleased(connection, pool)) {
-          connection.release();
-        }
+        updateImages(req, res, connection).then(function(data) {
+          if (connection && connectionNotReleased(connection, pool)) {
+            connection.release();
+            res.send('Success');
+          }
+        }, function(error) {
+          responseWithError(error, res, connection, pool);
+        });
       }, function(error) {
         responseWithError(error, res, connection, pool);
       });
@@ -86,10 +104,14 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
         return;
       }
       verifyUserHasAccess(connection, page_id, user_id, 'POST').then(function(data) {
-        updateImages(req, res, connection);
-        if (connection && connectionNotReleased(connection, pool)) {
-          connection.release();
-        }
+        updateImages(req, res, connection).then(function(data) {
+          if (connection && connectionNotReleased(connection, pool)) {
+            connection.release();
+            res.send('Success');
+          }
+        }, function(error) {
+          responseWithError(error, res, connection, pool);
+        });
       }, function(error) {
         responseWithError(error, res, connection, pool);
       });

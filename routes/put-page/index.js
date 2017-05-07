@@ -189,9 +189,8 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     }
     var disabled = getDisabled(defaults, content_type);
     var properties = getProperties(defaults, content_type);
-    var list = getList(defaults, content_type);
     return new Promise(function(resolve, reject) {
-      connection.query("INSERT INTO `page_content` (`page_id`, `type`, `properties`, `list`, `disabled`) VALUES (?, ?, ? ,?, ?)", [page_id, type, properties, list, disabled], function(err, rows, fields) {
+      connection.query("INSERT INTO `page_content` (`page_id`, `type`, `properties`, `disabled`) VALUES (?, ?, ?, ?)", [page_id, type, properties, disabled], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
@@ -228,17 +227,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     return content['properties'];
   }
 
-  function getList(defaults, content_type) {
-    if (!(content_type in defaults)) {
-      return null;
-    }
-    var content = defaults[content_type];
-    if (!('list' in content)) {
-      return null;
-    }
-    return content['list'];
-  }
-
   function setPageLinks(connection, page_id, defaults) {
     var pages = getPages(defaults);
     return new Promise(function(resolve, reject) {
@@ -271,7 +259,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   function setPageLink(connection, page_id, page, order_index) {
     var type = getPageType(page);
     var properties = getPageProperties(page);
-    var list = getPageList(page);
     return new Promise(function(resolve, reject) {
       if (!type) {
         reject({
@@ -279,7 +266,7 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           message: "Page type not found in page default config"
         });
       }
-      connection.query("INSERT INTO `page_links` (`page_id`, `type`, `properties`, `list`, `order_index`) VALUES (?, ?, ? ,?, ?)", [page_id, type, properties, list, order_index], function(err, rows, fields) {
+      connection.query("INSERT INTO `page_links` (`page_id`, `type`, `properties`, `order_index`) VALUES (?, ?, ?, ?)", [page_id, type, properties, order_index], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
@@ -305,13 +292,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     return page['properties'];
   }
 
-  function getPageList(page) {
-    if (!('list' in page)) {
-      return null;
-    }
-    return page['list'];
-  }
-
   function setPageSpecials(connection, page_id, defaults) {
     return new Promise(function(resolve, reject) {
       // @TODO: not 100% certain how these will work yet: just return that we're good for now.
@@ -319,33 +299,20 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
-  function updateParentPageLinks(connection, page_id, page_type, link_id) {
+  function updateParentPageLinks(connection, new_page_id, page_type, parent_link_id) {
     var list = [];
     return new Promise(function(resolve, reject) {
-      if (!link_id) {
+      if (!parent_link_id) {
         resolve('Success');
       }
-      connection.query("SELECT `list` FROM `page_links` WHERE `page_id` = ? AND `type` = ? LIMIT 1", [link_id, page_type], function(err, rows, fields) {
+      connection.query("INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, MAX(`order`) + 1 AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?", [parent_link_id, new_page_id, page_type, parent_link_id, page_type], function(err, rows, fields) {
         if (helpers.connection.queryError(err, connection)) {
           return reject({
             status: 500,
             message: "Query failed unexpectedly."
           });
         }
-        if (rows && rows.length > 0 && rows[0]['list']) {
-          list = JSON.parse(rows[0]['list']);
-        }
-        list.push(page_id);
-        list = JSON.stringify(list);
-        connection.query("UPDATE `page_links` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [list, link_id, page_type], function(err, rows, fields) {
-          if (helpers.connection.queryError(err, connection)) {
-            return reject({
-              status: 500,
-              message: "Query failed unexpectedly."
-            });
-          }
-          return resolve('Success');
-        });
+        return resolve('Success');
       });
     });
   }

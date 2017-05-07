@@ -2,7 +2,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   function updateImage(req, res, connection) {
     var body = req.body;
     var page_id = req.query.id;
-    var image_type = 'IM';
     var image_id = req.query.image;
     var image_name = body['name'];
     var image_caption = body['caption'];
@@ -12,8 +11,8 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     var thumbnail_link = image_thumbnail['link'];
     
     // we first need to verify that the image is actually associated with the given page_id, as the user may have maliciously given a page_id they have access over to manipulate an unassociated image.
-    var query = "SELECT 1 FROM `page_content` WHERE `page_id` = ? AND `type` = ? AND `list` LIKE " + connection.escape('%' + image_id + '%') + " LIMIT 1";
-    connection.query(query, [page_id, image_type], function(err, rows, fields) {
+    var query = "SELECT 1 FROM `page_id_bind` WHERE `page_id` = ? AND `bound_id` = ?";
+    connection.query(query, [page_id, image_id], function(err, rows, fields) {
       if (helpers.connection.queryError(err, connection)) {
         res.status(500).send('Query failed unexpectedly.');
         return;
@@ -55,38 +54,13 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           return;
         }
 
-        connection.query("SELECT `list` FROM `page_content` WHERE `page_id` = ? AND `type` = ? LIMIT 1", [page_id, image_type], function(err, rows, fields) {
+        connection.query("INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, MAX(`order`) + 1 AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?", [page_id, image_id, image_type, page_id, image_type], function(err, rows, fields) {
           if (helpers.connection.queryError(err, connection)) {
             res.status(500).send('Query failed unexpectedly.');
             return;
           }
-
-          if (rows.length > 0) {
-            if (rows[0]['list']) {
-              image_list = JSON.parse(rows[0]['list']);
-            }
-            image_list.push(image_id);
-            image_list = JSON.stringify(image_list);
-            connection.query("UPDATE `page_content` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [image_list, page_id, image_type], function(err, rows, fields) {
-              if (helpers.connection.queryError(err, connection)) {
-                res.status(500).send('Query failed unexpectedly.');
-                return;
-              }
-              res.send(image_id);
-              return;
-            });
-          } else {
-            image_list.push(image_id);
-            image_list = JSON.stringify(image_list);
-            connection.query("INSERT INTO `page_content` (`page_id`, `type`, `list`) VALUES (?, ?, ?)", [page_id, image_type, image_list], function(err, rows, fields) {
-              if (helpers.connection.queryError(err, connection)) {
-                res.status(500).send('Query failed unexpectedly.');
-                return;
-              }
-              res.send(image_id);
-              return;
-            });
-          }
+          res.send(image_id);
+          return;
         });
       });
     }, function(error) {
@@ -94,63 +68,44 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
+  /**
+   * Will only remove the binding of the image to the page.
+   * The image will still remain: we don't delete data.
+   */
   function deleteImage(req, res, connection, pool) {
-    var i, calls = [], new_list;
     var page_id = req.query.id;
     var image_id = req.query.image;
-    query = "SELECT `page_id`, `list` FROM `page_content` WHERE `list` LIKE " + connection.escape('%' + image_id + '%') + " AND `page_id` = " + connection.escape(page_id);
-    connection.query(query, function(err, rows, fields) {
-      if (helpers.connection.queryError(err, connection)) {
-        res.status(500).send('Query failed unexpectedly.');
-        return;
+    connection.beginTransaction(function(err) {
+      if (err) {
+        return connection.rollback(function() {
+          helpers.connection.queryError(err, connection);
+          res.status(500).send('Query failed unexpectedly.');
+        });
       }
-      if (rows.length <= 0) {
-        res.send('Success');
-        return;
-      }
-      // for now, we force the user to provide a page_id, and we only remove the image from that page; however, this is set up to remove the image from any page if page_id = ? is removed from the query.
-      // We don't want to do this, since the user may not have access to all pages with that image.
-      for (i = 0; i < rows.length; i++) {
-        new_list = removeImageFromList(rows[i]['list'], image_id);
-        calls.push(updateImageList(connection, rows[i]['page_id'], new_list));
-      }
-      Promise.all(calls).then(function() {
-        res.send('Success');
-        return;
-      }, function(error) {
-        responseWithError(error, res, connection, pool);
-      });
-    });
-  }
-
-  function removeImageFromList(image_list_string, image_id) {
-    var index = 0, image, image_list = [];
-    if (image_list_string) {
-      image_list = JSON.parse(image_list_string);
-    } else {
-      return image_list;
-    }
-    while (index > -1) {
-      index = image_list.indexOf(image_id);
-      if (index > -1) {
-        image_list.splice(index, 1);
-      }
-    }
-    return image_list;
-  }
-
-  function updateImageList(connection, page_id, image_list) {
-    var image_type = 'IM';
-    image_list = JSON.stringify(image_list);
-    return new Promise(function(resolve, reject) {
-      connection.query("UPDATE `page_content` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [image_list, page_id, image_type], function(err, rows, fields) {
-        if (helpers.connection.queryError(err, connection)) {
-          return reject({
-            status: 500,
-            message: "Query failed unexpectedly."
+      connection.query('UPDATE `page_id_bind` SET `order` = `order` - 1 WHERE `page_id` = ? AND `type` = "DE" AND `order` > (SELECT `order` FROM (SELECT `order` FROM `page_id_bind` WHERE `page_id` = ? AND `bound_id` = ?) AS `temp`)', [page_id, page_id, image_id], function (err, rows, fields) {
+        if (err) {
+          return connection.rollback(function() {
+            helpers.connection.queryError(err, connection);
+            res.status(500).send('Query failed unexpectedly.');
           });
         }
-        return resolve('Success');
+        connection.query('DELETE FROM `page_id_bind` WHERE `page_id` = ? AND `bound_id` = ?', [page_id, image_id], function (err, rows, fields) {
+          if (err) {
+            return connection.rollback(function() {
+              helpers.connection.queryError(err, connection);
+              res.status(500).send('Query failed unexpectedly.');
+            });
+          }
+          connection.commit(function(err) {
+            if (err) {
+              return connection.rollback(function() {
+                helpers.connection.queryError(err, connection);
+                res.status(500).send('Query failed unexpectedly.');
+              });
+            }
+            res.send('Success');
+          });
+        });
       });
     });
   }
