@@ -2,7 +2,6 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
   function updateDetail(req, res, connection) {
     var body = req.body;
     var page_id = req.query.id;
-    var detail_type = 'DE';
     var detail_id = req.query.detail;
     var detail_name = body['name'];
     var detail_content = body['content'];
@@ -13,8 +12,8 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     }
     
     // we first need to verify that the detail is actually associated with the given page_id, as the user may have maliciously given a page_id they have access over to manipulate an unassociated detail.
-    var query = "SELECT 1 FROM `page_content` WHERE `page_id` = ? AND `type` = ? AND `list` LIKE " + connection.escape('%' + detail_id + '%') + " LIMIT 1";
-    connection.query(query, [page_id, detail_type], function(err, rows, fields) {
+    var query = "SELECT 1 FROM `page_id_bind` WHERE `page_id` = ? AND `bound_id` = ?";
+    connection.query(query, [page_id, detail_id], function(err, rows, fields) {
       if (helpers.connection.queryError(err, connection)) {
         res.status(500).send('Query failed unexpectedly.');
         return;
@@ -56,38 +55,13 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
           return;
         }
 
-        connection.query("SELECT `list` FROM `page_content` WHERE `page_id` = ? AND `type` = ? LIMIT 1", [page_id, detail_type], function(err, rows, fields) {
+        connection.query("INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, MAX(`order`) + 1 AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?", [page_id, detail_id, detail_type, page_id, detail_type], function(err, rows, fields) {
           if (helpers.connection.queryError(err, connection)) {
             res.status(500).send('Query failed unexpectedly.');
             return;
           }
-
-          if (rows.length > 0) {
-            if (rows[0]['list']) {
-              detail_list = JSON.parse(rows[0]['list']);
-            }
-            detail_list.push(detail_id);
-            detail_list = JSON.stringify(detail_list);
-            connection.query("UPDATE `page_content` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [detail_list, page_id, detail_type], function(err, rows, fields) {
-              if (helpers.connection.queryError(err, connection)) {
-                res.status(500).send('Query failed unexpectedly.');
-                return;
-              }
-              res.send(detail_id);
-              return;
-            });
-          } else {
-            detail_list.push(detail_id);
-            detail_list = JSON.stringify(detail_list);
-            connection.query("INSERT INTO `page_content` (`page_id`, `type`, `list`) VALUES (?, ?, ?)", [page_id, detail_type, detail_list], function(err, rows, fields) {
-              if (helpers.connection.queryError(err, connection)) {
-                res.status(500).send('Query failed unexpectedly.');
-                return;
-              }
-              res.send(detail_id);
-              return;
-            });
-          }
+          res.send(detail_id);
+          return;
         });
       });
     }, function(error) {
@@ -95,63 +69,44 @@ module.exports = function(app, STATICS, helpers, Promise, pool, jsonParser) {
     });
   }
 
+  /**
+   * Will only remove the binding of the detail to the page.
+   * The detail will still remain: we don't delete data.
+   */
   function deleteDetail(req, res, connection, pool) {
-    var i, calls = [], new_list;
     var page_id = req.query.id;
     var detail_id = req.query.detail;
-    query = "SELECT `page_id`, `list` FROM `page_content` WHERE `list` LIKE " + connection.escape('%' + detail_id + '%') + " AND `page_id` = " + connection.escape(page_id);
-    connection.query(query, function(err, rows, fields) {
-      if (helpers.connection.queryError(err, connection)) {
-        res.status(500).send('Query failed unexpectedly.');
-        return;
+    connection.beginTransaction(function(err) {
+      if (err) {
+        return connection.rollback(function() {
+          helpers.connection.queryError(err, connection);
+          res.status(500).send('Query failed unexpectedly.');
+        });
       }
-      if (rows.length <= 0) {
-        res.send('Success');
-        return;
-      }
-      // for now, we force the user to provide a page_id, and we only remove the detail from that page; however, this is set up to remove the detail from any page if page_id = ? is removed from the query.
-      // We don't want to do this, since the user may not have access to all pages with that detail.
-      for (i = 0; i < rows.length; i++) {
-        new_list = removeDetailFromList(rows[i]['list'], detail_id);
-        calls.push(updateDetailList(connection, rows[i]['page_id'], new_list));
-      }
-      Promise.all(calls).then(function() {
-        res.send('Success');
-        return;
-      }, function(error) {
-        responseWithError(error, res, connection, pool);
-      });
-    });
-  }
-
-  function removeDetailFromList(detail_list_string, detail_id) {
-    var index = 0, detail, detail_list = [];
-    if (detail_list_string) {
-      detail_list = JSON.parse(detail_list_string);
-    } else {
-      return detail_list;
-    }
-    while (index > -1) {
-      index = detail_list.indexOf(detail_id);
-      if (index > -1) {
-        detail_list.splice(index, 1);
-      }
-    }
-    return detail_list;
-  }
-
-  function updateDetailList(connection, page_id, detail_list) {
-    var detail_type = 'DE';
-    detail_list = JSON.stringify(detail_list);
-    return new Promise(function(resolve, reject) {
-      connection.query("UPDATE `page_content` SET `list` = ? WHERE `page_id` = ? AND `type` = ?", [detail_list, page_id, detail_type], function(err, rows, fields) {
-        if (helpers.connection.queryError(err, connection)) {
-          return reject({
-            status: 500,
-            message: "Query failed unexpectedly."
+      connection.query('UPDATE `page_id_bind` SET `order` = `order` - 1 WHERE `page_id` = ? AND `type` = "DE" AND `order` > (SELECT `order` FROM (SELECT `order` FROM `page_id_bind` WHERE `page_id` = ? AND `bound_id` = ?) AS `temp`)', [page_id, page_id, detail_id], function (err, rows, fields) {
+        if (err) {
+          return connection.rollback(function() {
+            helpers.connection.queryError(err, connection);
+            res.status(500).send('Query failed unexpectedly.');
           });
         }
-        return resolve('Success');
+        connection.query('DELETE FROM `page_id_bind` WHERE `page_id` = ? AND `bound_id` = ?', [page_id, detail_id], function (err, rows, fields) {
+          if (err) {
+            return connection.rollback(function() {
+              helpers.connection.queryError(err, connection);
+              res.status(500).send('Query failed unexpectedly.');
+            });
+          }
+          connection.commit(function(err) {
+            if (err) {
+              return connection.rollback(function() {
+                helpers.connection.queryError(err, connection);
+                res.status(500).send('Query failed unexpectedly.');
+              });
+            }
+            res.send('Success');
+          });
+        });
       });
     });
   }
