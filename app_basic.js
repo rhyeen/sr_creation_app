@@ -82,10 +82,8 @@ STATICS.route_roots = {
 STATICS.routes = {
   page_summary: STATICS.route_roots.page + "/summary",
   page_detail: STATICS.route_roots.page + "/detail",
-  page_details: STATICS.route_roots.page + "/details",
   page_links: STATICS.route_roots.page + "/page-links",
   page_image: STATICS.route_roots.page + "/image",
-  page_images: STATICS.route_roots.page + "/images",
   healthcheck: STATICS.route_endpoints.default + "/healthcheck",
   render_tags: STATICS.route_roots.tag + "/render",
   page_search: STATICS.route_roots.page + "/search",
@@ -145,9 +143,7 @@ var delete_page_service = require('./routes/delete-page/index')(app, STATICS, he
 var put_page_service = require('./routes/put-page/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_summary_service = require('./routes/page-summary/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_detail_service = require('./routes/page-detail/index')(app, STATICS, helpers, Promise, pool, jsonParser);
-var page_details_service = require('./routes/page-details/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_image_service = require('./routes/page-image/index')(app, STATICS, helpers, Promise, pool, jsonParser);
-var page_image_service = require('./routes/page-images/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_links_service = require('./routes/page-links/index')(app, STATICS, helpers, Promise, pool, jsonParser);
 var page_search_service = require('./routes/page-search/index')(app, STATICS, helpers, Promise, pool);
 var image_service = require('./routes/image/index')(app, STATICS, helpers, Busboy, fs, path);

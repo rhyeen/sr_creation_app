@@ -48,6 +48,13 @@ module.exports = function(app, STATICS, helpers, Promise, pool) {
         if (!rows || rows.length <= 0) {
           return resolve([]);
         }
+        var row;
+        for (row of rows) {
+          row['thumbnail'] = {
+            'link': row['thumbnail_link']
+          };
+          delete row['thumbnail_link'];
+        }
         return resolve(rows);
       });
     });
