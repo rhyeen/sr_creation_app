@@ -9,6 +9,16 @@ module.exports = function(app, STATICS, helpers, Busboy, fs, path) {
     saveImage(req, res, target_directory);
   });
 
+  app.get(STATICS.routes.image + '/:image', function (req, res) {
+    var target_directory = path.resolve(STATICS.routes.private_images);
+    getImage(req, res, target_directory);
+  });
+
+  app.get(STATICS.routes.thumbnail + '/:image', function (req, res) {
+    var target_directory = path.resolve(STATICS.routes.private_thumbnails);
+    getImage(req, res, target_directory);
+  });
+
   function saveImage(req, res, target_directory) {
     var file_name = getFileName(target_directory);
     if (!file_name) {
@@ -67,5 +77,11 @@ module.exports = function(app, STATICS, helpers, Busboy, fs, path) {
       return getFileNameRecurse(target_directory, retries + 1);
     }
     return file_name;
+  }
+
+  function getImage(req, res, target_directory) {
+    var file_name = req.params.image;
+    var target_path = path.resolve(target_directory, file_name);
+    res.sendFile(target_path);
   }
 };
