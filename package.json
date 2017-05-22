@@ -6,6 +6,8 @@
     "start": "NODE_ENV=production pm2 start ./bin/www --watch",
     "dev": "NODE_ENV=development pm2 start ./bin/www --watch"
   },
+  "author": "Ryan Saunders",
+  "license": "GPL-3.0",
   "dependencies": {
     "bcryptjs": "^2.3.0",
     "bluebird": "^3.4.6",
