@@ -113,9 +113,9 @@ var mysql = require('mysql');
 
 var pool = mysql.createPool({
   connectionLimit : 20,
-  host: 'shardrealms.com',
+  host: '127.0.0.1',
   user: 'sr_creation_dev',
-  password: 'Fk94V3nIdc',
+  password: 'password',
   database: 'sr_creation_dev'
 });
 
