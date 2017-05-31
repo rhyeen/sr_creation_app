@@ -1,7 +1,7 @@
 let express = require("express");
 let router = new express.Router();
 let controller = require("./controller");
-let statics = require("../../lib/statics");
+let statics = require("../../lib/statics").get();
 let access = require("../../lib/middleware/access");
 let auth = require("../../lib/middleware/auth");
 

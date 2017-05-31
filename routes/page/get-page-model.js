@@ -2,7 +2,7 @@ let tools = require("../../lib/tools");
 let mysql = require("../../lib/mysql-connection");
 let Promise = require("bluebird");
 
-let exports = module.exports = {};
+var exports = module.exports = {};
 
 exports.getPage = function(page_id) {
   let page = getNewPage(page_id);
@@ -24,25 +24,32 @@ exports.getPage = function(page_id) {
                     mysql.forceConnectionRelease(connection);
                     return resolve(page);
                   }, function(error) {
-                    return reject(tools.responseWithError(error, res, connection));
+                    mysql.forceConnectionRelease(connection);
+                    return reject(error);
                   });
                 }, function(error) {
-                  return reject(tools.responseWithError(error, res, connection));
+                  mysql.forceConnectionRelease(connection);
+                  return reject(error);
                 });
               }, function(error) {
-                return reject(tools.responseWithError(error, res, connection));
+                mysql.forceConnectionRelease(connection);
+                return reject(error);
               });
             }, function(error) {
-              return reject(tools.responseWithError(error, res, connection));
+              mysql.forceConnectionRelease(connection);
+              return reject(error);
             });
           }, function(error) {
-            return reject(tools.responseWithError(error, res, connection));
+            mysql.forceConnectionRelease(connection);
+            return reject(error);
           });
         }, function(error) {
-          return reject(tools.responseWithError(error, res, connection));
+          mysql.forceConnectionRelease(connection);
+          return reject(error);
         });
       }, function(error) {
-        return reject(tools.responseWithError(error, res, connection));
+        mysql.forceConnectionRelease(connection);
+        return reject(error);
       });
     });
   });
@@ -52,6 +59,10 @@ function getNewPage(page_id) {
   return {
     id: page_id
   };
+}
+
+function getPageId(page) {
+  return page['id'];
 }
 
 function setPageSummary(connection, page) {
@@ -345,7 +356,7 @@ function setPageDetail(connection, page, link_list_id, index, ignore) {
       if (rows.length <= 0) {
         return reject({
           status: 404,
-          message: "Unable to find ${link_list_id} details."
+          message: `Unable to find ${link_list_id} details.`
         });
       }
       let detail_data = rows[0];
@@ -382,7 +393,7 @@ function setPageImage(connection, page, link_list_id, index, ignore) {
       if (rows.length <= 0) {
         return reject({
           status: 404,
-          message: "Unable to find ${link_list_id} images."
+          message: `Unable to find ${link_list_id} images.`
         });
       }
       let image_data = rows[0];
@@ -443,7 +454,7 @@ function getPageContainerByType(page, page_type) {
       return pages[i];
     }
   }
-  throw new Error('page_type of ${page_type} is unsupported');
+  throw new Error(`page_type of ${page_type} is unsupported`);
 }
 
 function setPageContainers(page, data) {

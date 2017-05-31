@@ -1,5 +1,5 @@
 let express = require("express");
-let statics = require("../lib/statics");
+let statics = require("../lib/statics").get();
 let router = new express.Router();
 
 module.exports = router;
