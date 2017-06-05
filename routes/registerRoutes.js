@@ -1,8 +1,8 @@
 module.exports = function(app) {
     let pageRoutes = require("./page/index.js");
     app.use(pageRoutes);
-    // let imageRoutes = require("./image/index.js");
-    // app.use(imageRoutes);
+    let imageRoutes = require("./image/index.js");
+    app.use(imageRoutes);
     // let pageDetailRoutes = require("./page-detail/index.js");
     // app.use(pageDetailRoutes);
     // let pageImageRoutes = require("./page-image/index.js");

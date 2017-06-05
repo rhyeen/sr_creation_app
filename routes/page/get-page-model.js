@@ -162,7 +162,7 @@ function getPageContentProperties(connection, page) {
 function getPageBoundIds(connection, page, data_container) {
   return new Promise(function(resolve, reject) {  
     let page_id = getPageId(page);
-    let query = "SELECT `bound_id` FROM `page_id_bind` WHERE `page_id` = ? AND `type` = ? ORDER BY `order` ASC";
+    let query = "SELECT `bound_id` FROM `page_id_bind` WHERE `page_id` = ? AND `type` = ? AND `disabled` = 0 ORDER BY `order` ASC";
     let params = [
       page_id,
       data_container['type']
