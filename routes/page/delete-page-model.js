@@ -37,7 +37,7 @@ function disablePage(connection, page_id) {
       if (mysql.queryError(err, connection)) {
         return reject(mysql.queryError(err, connection));
       }
-      return resolve('Success');
+      return resolve();
     });
   });
 }
@@ -52,7 +52,7 @@ function disablePageIdFromLinks(connection, page_id) {
       if (mysql.queryError(err, connection)) {
         return reject(mysql.queryError(err, connection));
       }
-      return resolve('Success');
+      return resolve();
     });
   });
 }

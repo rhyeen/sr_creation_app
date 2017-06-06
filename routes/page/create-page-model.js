@@ -10,7 +10,7 @@ exports.createPage = function(link_id, page_type, page_name, user_id) {
       if (mysql.connectionError(err, connection)) {
         return reject(mysql.connectionError(err, connection));
       }
-      getUniqueId(connection, page_type, 'page_auth', 'page_id').then(function(page_id) {
+      tools.getUniqueId(page_type, 'page_auth', 'page_id').then(function(page_id) {
         addPageAuth(connection, page_id, user_id).then(function(data) {
           addDefaultPageEntries(connection, page_id, page_type, page_name, link_id).then(function(data) {
             mysql.forceConnectionRelease(connection);
@@ -31,36 +31,6 @@ exports.createPage = function(link_id, page_type, page_name, user_id) {
   });
 };
 
-function getUniqueId(connection, id_starter, table, identifier, attempts) {
-  let max_attempts = 10;
-  if (!attempts) {
-    attempts = 0;
-  }
-  return new Promise(function(resolve, reject) {
-    let unique_id = tools.generateId(id_starter);
-    let query = "SELECT * FROM `" + table + "` WHERE `" + identifier + "` = ? LIMIT 1";
-    let params = [
-      unique_id
-    ];
-    connection.query(query, params, function(err, rows, fields) {
-      if (mysql.queryError(err, connection)) {
-        return reject(mysql.queryError(err, connection));
-      }
-      if (rows.length <= 0) {
-        return resolve(unique_id);
-      }
-      attempts += 1;
-      if (attempts >= max_attempts) {
-        return reject({
-          status: 500,
-          message: `Attempted to find a unique id ${max_attempts} times without success.`
-        });
-      }
-      return resolve(getUniqueId(connection, id_starter, table, identifier, attempts));
-    });
-  });
-}
-
 function addPageAuth(connection, page_id, user_id) {
   return new Promise(function(resolve, reject) {
     let query = "INSERT INTO `page_auth` (`page_id`, `user_id`, `page_POST`, `page_PUT`, `page_GET`, `page_DELETE`, `disabled`) VALUES (?, ?, 1, 1, 1, 1, 0)";
@@ -72,7 +42,7 @@ function addPageAuth(connection, page_id, user_id) {
       if (mysql.queryError(err, connection)) {
         return reject(mysql.queryError(err, connection));
       }
-      return resolve('Success');
+      return resolve();
     });
   });
 }
@@ -85,7 +55,7 @@ function addDefaultPageEntries(connection, page_id, page_type, page_name, link_i
           setPageLinks(connection, page_id, defaults).then(function(data) {
             setPageSpecials(connection, page_id, defaults).then(function(data) {
               updateParentPageLinks(connection, page_id, page_type, link_id).then(function(data) {
-                resolve('Success');
+                resolve();
               }, function(error) {
                 reject(error);
               });
@@ -144,7 +114,7 @@ function setPageSummary(connection, page_id, page_type, page_name, defaults) {
       if (mysql.queryError(err, connection)) {
         return reject(mysql.queryError(err, connection));
       }
-      return resolve('Success');
+      return resolve();
     });
   });
 }
@@ -175,7 +145,7 @@ function setPageContent(connection, page_id, defaults) {
   return new Promise(function(resolve, reject) {
     setPageDefault('details', connection, page_id, defaults).then(function(data) {
       setPageDefault('images', connection, page_id, defaults).then(function(data) {
-        resolve('Success');
+        resolve();
       }, function(error) {
         reject(error);
       });
@@ -206,7 +176,7 @@ function setPageDefault(content_type, connection, page_id, defaults) {
       if (mysql.queryError(err, connection)) {
         return reject(mysql.queryError(err, connection));
       }
-      return resolve('Success');
+      return resolve();
     });
   });
 }
@@ -240,10 +210,10 @@ function setPageLinks(connection, page_id, defaults) {
   let pages = getPages(defaults);
   return new Promise(function(resolve, reject) {
     if (!pages || pages.length <= 0) {
-      return resolve('Success');
+      return resolve();
     }
     Promise.all(setPageLinkCalls(connection, page_id, pages)).then(function() {
-      return resolve('Success');
+      return resolve();
     }, function(error) {
       return reject(error);
     });
@@ -286,7 +256,7 @@ function setPageLink(connection, page_id, page, order_index) {
       if (mysql.queryError(err, connection)) {
         return reject(mysql.queryError(err, connection));
       }
-      return resolve('Success');
+      return resolve();
     });
   });
 }
@@ -308,7 +278,7 @@ function getPageProperties(page) {
 function setPageSpecials(connection, page_id, defaults) {
   return new Promise(function(resolve, reject) {
     // @TODO: not 100% certain how these will work yet: just return that we're good for now.
-    return resolve('Success');
+    return resolve();
   });
 }
 
@@ -316,7 +286,7 @@ function updateParentPageLinks(connection, new_page_id, page_type, parent_link_i
   let list = [];
   return new Promise(function(resolve, reject) {
     if (!parent_link_id) {
-      resolve('Success');
+      resolve();
     }
     let query = "INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, MAX(`order`) + 1 AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?";
     let params = [
@@ -330,7 +300,7 @@ function updateParentPageLinks(connection, new_page_id, page_type, parent_link_i
       if (mysql.queryError(err, connection)) {
         return reject(mysql.queryError(err, connection));
       }
-      return resolve('Success');
+      return resolve();
     });
   });
 }
