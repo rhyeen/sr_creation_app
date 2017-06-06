@@ -2,14 +2,15 @@ let express = require("express");
 let router = new express.Router();
 let controller = require("./controller");
 let statics = require("../../lib/statics").get();
-let auth = require("../../lib/middleware/auth");
 let access = require("../../lib/middleware/access");
+let auth = require("../../lib/middleware/auth");
 
 module.exports = router;
 
-router.route(statics.routes.page_detail)
+router.route(statics.route_roots.page)
     .all(auth.verifyUser)
     .all(access.verifyUserHasAccess)
-    .post(controller.addDetail)
-    .put(controller.updateDetail)
-    .delete(controller.disableDetail);
+    .get(controller.getPage)
+    .put(controller.updatePage)
+    .post(controller.createPage)
+    .delete(controller.deletePage);
