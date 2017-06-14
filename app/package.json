@@ -1,0 +1,32 @@
+{
+  "name": "sr-app",
+  "version": "0.1.1",
+  "private": true,
+  "scripts": {
+    "start": "NODE_ENV=production pm2 start ./bin/www",
+    "dev": "NODE_ENV=development pm2 start ./bin/www --watch",
+    "foreground": "NODE_ENV=development pm2 start ./bin/www --watch --no-daemon"
+  },
+  "author": "Ryan Saunders",
+  "license": "GPL-3.0",
+  "engines": {
+    "node": ">6.9.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.3.0",
+    "bluebird": "^3.4.6",
+    "body-parser": "~1.15.1",
+    "busboy": "^0.2.14",
+    "cookie-parser": "~1.4.3",
+    "debug": "~2.2.0",
+    "ejs": "~2.5.2",
+    "express": "~4.13.4",
+    "jsonwebtoken": "^7.1.9",
+    "morgan": "~1.7.0",
+    "mysql": "^2.12.0",
+    "serve-favicon": "~2.3.0"
+  },
+  "devDependencies": {
+    "pm2": "^2.5.0"
+  }
+}

@@ -1,4 +1,4 @@
-node_modules
-/dist
-/.tmp
+app/node_modules
+app/dist
+app/.tmp
 sftp-config.json
