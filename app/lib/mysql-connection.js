@@ -22,7 +22,7 @@ exports.getConnection = function(callback) {
   }
   try {
     let port = constants.MYSQL_PORT;
-    let host = constants.MYSQL_HOST;
+    let host = process.env.DATABASE_HOST || constants.MYSQL_HOST;
     let database = constants.MYSQL_DATABASE;
     let user = constants.MYSQL_USER;
     let connection_limit = constants.MYSQL_CONNECTION_LIMIT;

@@ -1,6 +1,6 @@
 ### Edit these variables ###
 IMG_NAME=app
-PORT=3030
+PORT=4000
 TAG=latest
 VOLUME_TO_MOUNT=$(shell pwd)
 SET_NODE_ENV=dev
@@ -8,26 +8,24 @@ SET_NODE_ENV=dev
 
 IMG=sr_creation/$(IMG_NAME)
 CONTAINER=$(IMG_NAME)
-RUNOPTS=-p $(PORT):80
-VOLUME_DESTINATION=/home/default
+RUN_OPTIONS=-p $(PORT):$(PORT)
+DATABASE_CONTAINER=db
+LINK_OPTIONS=--link $(DATABASE_CONTAINER):$(DATABASE_CONTAINER) -e DATABASE_HOST=$(DATABASE_CONTAINER)
 
 build:
-	docker build -t $(IMG):$(TAG) --build-arg SET_NODE_ENV=$(SET_NODE_ENV) ./.
+	docker build -t $(IMG):$(TAG) .
 
 run-enter: rm
-	docker run -it $(RUNOPTS) --name $(CONTAINER) -v $(VOLUME_TO_MOUNT):$(VOLUME_DESTINATION) -e ENVIRONMENT=dev $(IMG):$(TAG) /bin/bash
+	docker run -it $(RUN_OPTIONS) --name $(CONTAINER) $(LINK_OPTIONS) -v $(VOLUME_TO_MOUNT)/app:$(VOLUME_DESTINATION)/app -v $(VOLUME_TO_MOUNT)/private-serve:$(VOLUME_DESTINATION)/private-serve -e ENVIRONMENT=dev $(IMG):$(TAG) /bin/bash
 
 run-dev: rm
-	docker run -d $(RUNOPTS) --name $(CONTAINER) -v $(VOLUME_TO_MOUNT):$(VOLUME_DESTINATION) -e ENVIRONMENT=dev $(IMG):$(TAG) npm run dev
+	docker run -it -d $(RUN_OPTIONS) --name $(CONTAINER) $(LINK_OPTIONS) -v $(VOLUME_TO_MOUNT)/app:$(VOLUME_DESTINATION)/app -v $(VOLUME_TO_MOUNT)/private-serve:$(VOLUME_DESTINATION)/private-serve -e ENVIRONMENT=dev $(IMG):$(TAG) /run_dev.sh
 
 run-prod: rm
-	docker run -d $(RUNOPTS) --name $(CONTAINER) -e ENVIRONMENT=prod $(IMG):$(TAG) npm start
+	docker run -d $(RUN_OPTIONS) --name $(CONTAINER) -e ENVIRONMENT=prod $(IMG):$(TAG)
 
 push:
 	docker push $(IMG):$(TAG)
-
-test: rm
-	docker run $(RUNOPTS) --name $(CONTAINER) --rm -e ENVIRONMENT=test $(IMG):$(TAG) npm test
 
 rm:
 	docker rm -f $(CONTAINER) || true
