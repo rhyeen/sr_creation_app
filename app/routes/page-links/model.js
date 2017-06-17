@@ -7,6 +7,8 @@ var exports = module.exports = {};
 
 exports.updatePageLinks = function(page_id, page_links) {
   return new Promise(function(resolve, reject) {
+    console.log('here');
+    console.log(page_links);
     let page_type = getPageType(page_links);
     if (!page_type) {
       return reject({
@@ -19,7 +21,7 @@ exports.updatePageLinks = function(page_id, page_links) {
       }
       let update_order_calls = [];
       for (let i = 0; i < page_links.length; i++) {
-        update_order_calls.push(updateOrder(connection, page_id, page_links[i], i));
+        update_order_calls.push(updateOrder(connection, page_id, page_links[i], page_type, i));
       }
       Promise.all(update_order_calls).then(function() {
         mysql.forceConnectionRelease(connection);
@@ -31,14 +33,21 @@ exports.updatePageLinks = function(page_id, page_links) {
   });
 };
 
-function updateOrder(connection, page_id, link_id, index) {
+function updateOrder(connection, page_id, link_id, page_type, index) {
   return new Promise(function(resolve, reject) {
-    let query = "UPDATE `page_id_bind` SET `order` = ? WHERE `page_id` = ? AND `bound_id` = ?";
+    let query = "INSERT INTO `page_id_bind` (`order`, `page_id`, `bound_id`, `type`) VALUES(?, ?, ?, ?) ON DUPLICATE KEY UPDATE `order` = ?";
     let params = [
+      index,
+      page_id,
+      link_id,
+      page_type,
       index,
       page_id,
       link_id
     ];
+    console.log('here2');
+    console.log(page_id);
+    console.log(link_id);
     connection.query(query, params, function(err, rows, fields) {
       if (mysql.queryError(err, connection)) {
         return reject(mysql.queryError(err, connection));

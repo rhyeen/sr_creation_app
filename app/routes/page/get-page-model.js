@@ -216,7 +216,7 @@ function getPageSpecialsData(connection, page) {
 function getPageSpecialProperties(connection, page) {
   return new Promise(function(resolve, reject) {  
     let page_id = getPageId(page);
-    let query = "SELECT `type`, `properties` FROM `page_specials` WHERE `page_id` = ? AND `order_index` > -1 ORDER BY `order_index` DESC";
+    let query = "SELECT `type`, `properties` FROM `page_specials` WHERE `page_id` = ? AND `order_index` > -1 ORDER BY `order_index` ASC";
     let params = [
       page_id
     ];
@@ -271,7 +271,7 @@ function getPageLinksData(connection, page) {
 function getPageLinksProperties(connection, page) {
   return new Promise(function(resolve, reject) {  
     let page_id = getPageId(page);
-    let query = "SELECT `type`, `properties` FROM `page_links` WHERE `page_id` = ? AND `order_index` > -1 ORDER BY `order_index` DESC";
+    let query = "SELECT `type`, `properties` FROM `page_links` WHERE `page_id` = ? AND `order_index` > -1 ORDER BY `order_index` ASC";
     let params = [
       page_id
     ];
