@@ -9,6 +9,7 @@ let STATICS = {
 
 STATICS.route_roots = {
   page: STATICS.route_endpoints.secured + "/page",
+  map: STATICS.route_endpoints.secured + "/map",
   file: STATICS.route_endpoints.secured + "/file",
   article: STATICS.route_endpoints.secured + "/article",
   tag: STATICS.route_endpoints.secured + "/tag",

@@ -15,4 +15,6 @@ module.exports = function(app) {
     app.use(pageSummaryRoutes);
     let tagRoutes = require("./tag/index.js");
     app.use(tagRoutes);
+    let mapRoutes = require("./map/index.js");
+    app.use(mapRoutes);
 };
