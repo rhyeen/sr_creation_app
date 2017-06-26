@@ -24,6 +24,7 @@ STATICS.routes = {
   healthcheck: STATICS.route_endpoints.default + "/healthcheck",
   render_tags: STATICS.route_roots.tag + "/render",
   page_search: STATICS.route_roots.page + "/search",
+  map_search: STATICS.route_roots.map + "/search",
   image: STATICS.route_roots.file + "/image",
   thumbnail: STATICS.route_roots.file + "/image/thumbnail",
   private_images: STATICS.route_roots.private_files + "/images",

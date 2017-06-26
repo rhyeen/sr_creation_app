@@ -17,4 +17,6 @@ module.exports = function(app) {
     app.use(tagRoutes);
     let mapRoutes = require("./map/index.js");
     app.use(mapRoutes);
+    let mapSearchRoutes = require("./map-search/index.js");
+    app.use(mapSearchRoutes);
 };
