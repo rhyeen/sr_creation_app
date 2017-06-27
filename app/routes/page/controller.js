@@ -41,7 +41,7 @@ exports.updatePage = function(req, res) {
     status: 404,
     message: "There is no endpoint to update a page. Instead, update each page element individually."
   };
-  tools.responseWithError(error, res, null);
+  return tools.responseWithError(error, res, null);
 }
 
 exports.deletePage = function(req, res) {

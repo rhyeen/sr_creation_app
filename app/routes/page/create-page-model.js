@@ -288,7 +288,7 @@ function updateParentPageLinks(connection, new_page_id, page_type, parent_link_i
     if (!parent_link_id) {
       resolve();
     }
-    let query = "INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, MAX(`order`) + 1 AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?";
+    let query = "INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, CASE WHEN MAX(`order`) IS NOT NULL THEN MAX(`order`) + 1 ELSE 0 END AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?";
     let params = [
       parent_link_id,
       new_page_id,

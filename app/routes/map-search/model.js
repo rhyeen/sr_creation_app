@@ -16,7 +16,7 @@ function getMapImageSearchResults(user_id, search_query) {
       if (mysql.connectionError(err, connection)) {
         return reject(mysql.connectionError(err, connection));
       }
-      let query = "SELECT `page_images`.`image_id` AS `id`, `page_images`.`name` AS `name`, `page_images`.`caption` AS `caption`, `page_images`.`link` AS `link`, `page_images`.`thumbnail_link` AS `thumbnail_link`, `page_images`.`source` AS `source` FROM `page_images` INNER JOIN `page_id_bind` ON `page_images`.`image_id` = `page_id_bind`.`bound_id` INNER JOIN `page_auth` ON `page_auth`.`page_id` = `page_id_bind`.`page_id` WHERE `page_auth`.`user_id` = ? AND `page_GET` = 1 AND `page_images`.`name` LIKE" + connection.escape('%' + search_query + '%');
+      let query = "SELECT `map_images`.`image_id` AS `id`, `map_images`.`name` AS `name`, `map_images`.`caption` AS `caption`, `map_images`.`link` AS `link`, `map_images`.`thumbnail_link` AS `thumbnail_link`, `map_images`.`source` AS `source` FROM `map_images` INNER JOIN `page_id_bind` ON `map_images`.`image_id` = `page_id_bind`.`bound_id` INNER JOIN `page_auth` ON `page_auth`.`page_id` = `page_id_bind`.`page_id` WHERE `page_auth`.`user_id` = ? AND `page_GET` = 1 AND `map_images`.`name` LIKE" + connection.escape('%' + search_query + '%');
       let params = [
         user_id
       ];
