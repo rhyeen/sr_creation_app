@@ -1,6 +1,7 @@
 let tools = require("../../lib/tools");
 let mysql = require("../../lib/mysql-connection");
 let Promise = require("bluebird");
+let manage_content = require("../../lib/services/manage-content");
 
 var exports = module.exports = {};
 

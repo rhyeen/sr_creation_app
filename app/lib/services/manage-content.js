@@ -100,10 +100,3 @@ exports.disableContent = function(page_id, content_id) {
     });
   });
 };
-
-function cannotStringifyContentPartitionsError() {
-  return {
-    message: "Cannot convert content partitions into JSON object.",
-    status: 400
-  };
-};
