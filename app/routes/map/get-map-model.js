@@ -155,7 +155,7 @@ function setMapProperties(connection, map) {
 function setMapImage(connection, map) {
   const map_id = getMapId(map);
   return new Promise(function(resolve, reject) {
-    let query = "SELECT `image_id`, `name`, `caption`, `link`, `thumbnail_link`, `source` FROM `map_images` WHERE `map_id` = ? LIMIT 1";
+    let query = "SELECT b.`image_id`, b.`name`, b.`caption`, b.`link`, b.`thumbnail_link`, b.`source` FROM (SELECT `bound_id` FROM `page_id_bind` WHERE `page_id` = ? AND `type` = 'MI') AS a LEFT JOIN `map_images` ON b.`image_id` = a.`bound_id` LIMIT 1";
     let params = [
       map_id
     ];
