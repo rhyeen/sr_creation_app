@@ -146,7 +146,11 @@ function setPageContent(connection, page_id, defaults) {
   return new Promise(function(resolve, reject) {
     setPageDefault('details', connection, page_id, defaults).then(function(data) {
       setPageDefault('images', connection, page_id, defaults).then(function(data) {
-        resolve();
+        setPageDefault('maps', connection, page_id, defaults).then(function(data) {
+          resolve();
+        }, function(error) {
+          reject(error);
+        });
       }, function(error) {
         reject(error);
       });
@@ -160,12 +164,18 @@ function setPageDefault(content_type, connection, page_id, defaults) {
   let type;
   if (content_type == 'details') {
     type = 'DE';
-  } else {
+  } else if (content_type == 'images') {
     type = 'IM';
+  } else {
+    type = 'MP';
   }
-  let disabled = getDisabled(defaults, content_type);
-  let properties = getProperties(defaults, content_type);
   return new Promise(function(resolve, reject) {
+    // @NOTE: no need to insert it into the table: the content cannot exist here (even in admin page settings).  This is for things like maps, which are specific to locations.
+    if (!(content_type in defaults)) {
+      return resolve();
+    }
+    let disabled = getDisabled(defaults, content_type);
+    let properties = getProperties(defaults, content_type);
     let query = "INSERT INTO `page_content` (`page_id`, `type`, `properties`, `disabled`) VALUES (?, ?, ?, ?)";
     let params = [
       page_id,

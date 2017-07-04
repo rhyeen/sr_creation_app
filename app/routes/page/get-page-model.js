@@ -318,7 +318,8 @@ function resolveCall() {
 function getLinkListSetterFunction(link_type) {
   let link_list_setter_functions = {
     'DE': setPageDetail,
-    'IM': setPageImage
+    'IM': setPageImage,
+    'MP': setPageMap
   };
   if (link_type in link_list_setter_functions) {
     return link_list_setter_functions[link_type];
@@ -410,6 +411,43 @@ function setPageImage(connection, page, link_list_id, index, ignore) {
   });
 }
 
+function setPageMap(connection, page, link_list_id, index, ignore) {
+  // only used to conform to abstract function standard (setPageLink needs it).
+  ignore = null;
+  return new Promise(function(resolve, reject) {
+    let page_id = getPageId(page);
+    let query = "SELECT * FROM `page_maps` WHERE `map_id` = ? LIMIT 1";
+    let params = [
+      link_list_id
+    ];
+    connection.query(query, params, function(err, rows, fields) {
+      // @TODO: probably want to find a way to only fail if more than X% of all calls in Promise.all fail.  But, only if 500's.  Other types of failures shouldn't occur if the structure is valid.
+      if (mysql.queryError(err, connection)) {
+        return reject(mysql.queryError(err, connection));
+      }
+      if (rows.length <= 0) {
+        return reject({
+          status: 404,
+          message: `Unable to find ${link_list_id} maps.`
+        });
+      }
+      let map_data = rows[0];
+      let map = page['maps']['list'][index];
+      map['name'] = map_data['name'];
+      let map_properties = map_data['properties'];
+      if (map_properties) {
+        map_properties = JSON.parse(map_properties);
+      }
+      let map_text = map_data['text'];
+      map['summary'] = {
+        'properties': map_properties,
+        'text': map_text
+      };
+      return resolve(page);
+    });
+  });
+}
+
 function setPageLink(connection, page, link_list_id, index, page_type) {
   return new Promise(function(resolve, reject) {
     let page_id = getPageId(page);
@@ -484,6 +522,12 @@ function setPageImagesContainer(page, data) {
   setupContainer(page, data, page[key]);
 }
 
+function setPageMapsContainer(page, data) {
+  let key = 'maps';
+  page[key] = {};
+  setupContainer(page, data, page[key]);
+}
+
 function setPageLinksContainer(page, data) {
   let key = 'pages';
   if (!(key in page)) {
@@ -521,7 +565,8 @@ function setupContainer(page, data, container) {
 function getContainerFunction(container_type) {
   let container_functions = {
     'DE': setPageDetailsContainer,
-    'IM': setPageImagesContainer
+    'IM': setPageImagesContainer,
+    'MP': setPageMapsContainer
   };
   if (container_type in container_functions) {
     return container_functions[container_type];

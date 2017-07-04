@@ -12,4 +12,4 @@ router.route(statics.routes.map_image)
     .all(access.verifyUserHasAccess)
     .post(controller.addImage)
     .put(controller.updateImage)
-    .delete(controller.disableImage);
+    .delete(controller.deleteImageLink);

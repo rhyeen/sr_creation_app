@@ -10,7 +10,7 @@ module.exports = router;
 router.route(statics.route_roots.map)
     .all(auth.verifyUser)
     .all(access.verifyUserHasAccess)
-    .get(controller.getMaps)
+    .get(controller.getMap)
     .put(controller.createMap)
     .post(controller.updateMap)
     .delete(controller.deleteMap);

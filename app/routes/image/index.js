@@ -20,4 +20,4 @@ router.route(statics.routes.thumbnail)
 
 router.route(statics.routes.thumbnail + '/:image')
     .all(auth.verifyUser)
-    .get(controller.getThumbnail);   
+    .get(controller.getThumbnail);

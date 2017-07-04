@@ -4,27 +4,19 @@ let delete_map_model = require("./delete-map-model");
 let tools = require("../../lib/tools");
 var exports = module.exports = {};
 
-exports.getMaps = function(req, res) {
-  if (!req.page_id) {
-    if (!req.params.mapId) {
-      error = {
-        status: 400,
-        message: "Page id or Map id must be provided to retrieve a map."
-      };
-      return tools.responseWithError(error, res, null);
-    }
-    get_map_model.getMap(req.params.mapId).then(function(map) {
-      return res.send(map);
-    }, function(error) {
-      return tools.responseWithError(error, res, null);
-    });
-  } else {
-    get_map_model.getMaps(req.page_id).then(function(maps) {
-      return res.send(maps);
-    }, function(error) {
-      return tools.responseWithError(error, res, null);
-    });
+exports.getMap = function(req, res) {
+  if (!req.map_id) {
+    error = {
+      status: 400,
+      message: "Map id must be provided to retrieve a map."
+    };
+    return tools.responseWithError(error, res, null);
   }
+  get_map_model.getMap(req.map_id).then(function(map) {
+    return res.send(map);
+  }, function(error) {
+    return tools.responseWithError(error, res, null);
+  });
 }
 
 exports.updateMap = function(req, res) {

@@ -22,12 +22,12 @@ exports.createMap = function(page_id, map) {
       text = map['summary']['text'];
     }
   }
-  let query = "INSERT INTO `maps` VALUES (`map_id`, `name`, `properties`, `text`) VALUES (?, ?, ?, ?)";
+  let query = "INSERT INTO `page_maps` (`map_id`, `name`, `properties`, `text`) VALUES (?, ?, ?, ?)";
   let params = [
     null,
     name,
     properties,
     text
   ];
-  return manage_content.addContent(page_id, query, params, 0, 'maps', 'maps_id', 'MP');
+  return manage_content.addContent(page_id, query, params, 0, 'page_maps', 'map_id', 'MP');
 };
