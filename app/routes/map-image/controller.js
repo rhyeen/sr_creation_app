@@ -11,15 +11,10 @@ exports.addImage = function(req, res) {
     let image_source = getImageSource(req);
     let image_link = getImageLink(req);
     let thumbnail_link = getThumbnailLink(req);
-    model.verifyPageHasAccess(page_id, map_id).then(() => {
-      model.addImage(map_id, image_name, image_caption, image_source, image_link, thumbnail_link).then(function(image_id) {
-        res.send(image_id);
-        return;
-      }, function(error) {
-        tools.responseWithError(error, res, null);
-        return;
-      });
-    }, error => {
+    model.addImage(map_id, image_name, image_caption, image_source, image_link, thumbnail_link).then(function(image_id) {
+      res.send(image_id);
+      return;
+    }, function(error) {
       tools.responseWithError(error, res, null);
       return;
     });
@@ -38,15 +33,10 @@ exports.updateImage = function(req, res) {
     let image_source = getImageSource(req);
     let image_link = getImageLink(req);
     let thumbnail_link = getThumbnailLink(req);
-    model.verifyPageHasAccess(page_id, map_id).then(() => {
-      model.updateImage(map_id, image_id, image_name, image_caption, image_source, image_link, thumbnail_link).then(function(data) {
-        res.send('Success');
-        return;
-      }, function(error) {
-        tools.responseWithError(error, res, null);
-        return;
-      });
-    }, error => {
+    model.updateImage(map_id, image_id, image_name, image_caption, image_source, image_link, thumbnail_link).then(function(data) {
+      res.send('Success');
+      return;
+    }, function(error) {
       tools.responseWithError(error, res, null);
       return;
     });
@@ -60,15 +50,10 @@ exports.deleteImageLink = function(req, res) {
   let page_id = req.page_id;
   try {
     let image_id = getImageId(req);
-    model.verifyPageHasAccess(page_id, map_id).then(() => {
-      model.disableImage(map_id, image_id).then(function(data) {
-        res.send('Success');
-        return;
-      }, function(error) {
-        tools.responseWithError(error, res, null);
-        return;
-      });
-    }, error => {
+    model.disableImage(map_id, image_id).then(function(data) {
+      res.send('Success');
+      return;
+    }, function(error) {
       tools.responseWithError(error, res, null);
       return;
     });
@@ -105,7 +90,7 @@ function getImageSource(req) {
   if ('source' in body && body['source']) {
     return body['source'];
   }
-  throw getMissingBodyPropertyError('source');
+  return null;
 }
 
 function getImageCaption(req) {
@@ -113,7 +98,7 @@ function getImageCaption(req) {
   if ('caption' in body && body['caption']) {
     return body['caption'];
   }
-  throw getMissingBodyPropertyError('caption');
+  return null;
 }
 
 function getImageLink(req) {

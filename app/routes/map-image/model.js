@@ -37,31 +37,3 @@ exports.updateImage = function(map_id, image_id, image_name, image_caption, imag
 exports.deleteImageLink = function(map_id, image_id) {
   return manage_content.disableContent(map_id, image_id);
 };
-
-exports.verifyPageHasAccess = function(page_id, map_id) {
-  return new Promise(function(resolve, reject) {
-    mysql.getConnection(function(err, connection) {
-      if (mysql.connectionError(err, connection)) {
-        return reject(mysql.connectionError(err, connection));
-      }
-      let query = "SELECT 1 FROM `page_id_bind` WHERE `page_id` = ? AND `bound_id` = ? LIMIT 1";
-      let params = [
-        page_id,
-        map_id
-      ];
-      connection.query(query, params, function(err, rows, fields) {
-        mysql.forceConnectionRelease(connection);
-        if (mysql.queryError(err, connection)) {
-          return reject(mysql.queryError(err, connection));
-        }
-        if (!rows || rows.length <= 0) {
-          return reject({
-            status: 401,
-            message: "This page does not have access to the given map"
-          });
-        }
-        return resolve();
-      });
-    });
-  });
-};
