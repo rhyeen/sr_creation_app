@@ -1,5 +1,6 @@
 let mysql = require("mysql");
 let constants = require("./constants").get();
+let StatusError = require("./error/status-error");
 
 let pool = null;
 
@@ -57,11 +58,9 @@ exports.connectionError = function(err, connection) {
   if (err) {
     console.error("ERROR: Connection could not be established.\n" + err);
     exports.forceConnectionRelease(connection);
-    return {
-      status: 500,
-      error: "CONNECTION_ERROR",
-      message: "Could not connect to the database."
-    };
+    const message = "Could not connect to the database.";
+    const error = "CONNECTION_ERROR";
+    return new StatusError(message, 500, error);
   }
   return null;
 };
@@ -70,11 +69,9 @@ exports.queryError = function(err, connection) {
   if (err) {
     console.error("ERROR: Query failed unexpectedly:\n" + err);
     exports.forceConnectionRelease(connection);
-    return {
-      status: 500,
-      error: "QUERY_ERROR",
-      message: "Query failed unexpectedly"
-    };
+    const message = "Query failed unexpectedly.";
+    const error = "QUERY_ERROR";
+    return new StatusError(message, 500, error);
   }
   return null;
 };

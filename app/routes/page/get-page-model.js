@@ -1,5 +1,7 @@
 let tools = require("../../lib/tools");
 let mysql = require("../../lib/mysql-connection");
+let StatusError = require("../../lib/error/status-error");
+
 let Promise = require("bluebird");
 
 var exports = module.exports = {};
@@ -355,10 +357,8 @@ function setPageDetail(connection, page, link_list_id, index, ignore) {
         return reject(mysql.queryError(err, connection));
       }
       if (rows.length <= 0) {
-        return reject({
-          status: 404,
-          message: `Unable to find ${link_list_id} details.`
-        });
+        const message = `Unable to find ${link_list_id} details.`;
+        return reject(new StatusError(message, 404));
       }
       let detail_data = rows[0];
       let detail = page['details']['list'][index];
@@ -392,10 +392,8 @@ function setPageImage(connection, page, link_list_id, index, ignore) {
         return reject(mysql.queryError(err, connection));
       }
       if (rows.length <= 0) {
-        return reject({
-          status: 404,
-          message: `Unable to find ${link_list_id} images.`
-        });
+        const message = `Unable to find ${link_list_id} images.`;
+        return reject(new StatusError(message, 404));
       }
       let image_data = rows[0];
       let image = page['images']['list'][index];
@@ -426,10 +424,8 @@ function setPageMap(connection, page, link_list_id, index, ignore) {
         return reject(mysql.queryError(err, connection));
       }
       if (rows.length <= 0) {
-        return reject({
-          status: 404,
-          message: `Unable to find ${link_list_id} maps.`
-        });
+        const message = `Unable to find ${link_list_id} maps.`;
+        return reject(new StatusError(message, 404));
       }
       let map_data = rows[0];
       let map = page['maps']['list'][index];
@@ -461,10 +457,8 @@ function setPageLink(connection, page, link_list_id, index, page_type) {
         return reject(mysql.queryError(err, connection));
       }
       if (rows.length <= 0) {
-        return reject({
-          status: 404,
-          message: "Unable to find {0} page summary.".format(link_list_id)
-        });
+        const message = `Unable to find ${link_list_id} summary.`;
+        return reject(new StatusError(message, 404));
       }
       let page_link_data = rows[0];
       page_container = getPageContainerByType(page, page_type);
