@@ -24,7 +24,7 @@ exports.createPage = function(req, res) {
   let page_name = req.query.name;
   let user_id = req.user_id;
   if (!page_type) {
-    res.status(500).send(`Page type: ${query_page_type} is unsupported.`);
+    res.status(400).send(`Page type: ${query_page_type} is unsupported.`);
     return;
   }
   model.createPage(link_id, page_type, page_name, user_id).then(function(page_id) {
@@ -46,8 +46,8 @@ exports.updatePage = function(req, res) {
 
 exports.deletePage = function(req, res) {
   model.forceGetPageId(req.page_id, req.user_id).then(function(page_id) {
-    model.deletePage(page_id).then(function(page) {
-      res.send(page);
+    model.deletePage(page_id).then(function() {
+      res.send('Success');
       return;
     }, function(error) {
       tools.responseWithError(error, res, null);
