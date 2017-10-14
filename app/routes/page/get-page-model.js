@@ -380,6 +380,7 @@ function setPageDetail(connection, page, link_list_id, index, ignore) {
 function setPageImage(connection, page, link_list_id, index, ignore) {
   // only used to conform to abstract function standard (setPageLink needs it).
   ignore = null;
+  console.log('image: ' + link_list_id);
   return new Promise(function(resolve, reject) {
     let page_id = getPageId(page);
     let query = "SELECT * FROM `page_images` WHERE `image_id` = ? LIMIT 1";

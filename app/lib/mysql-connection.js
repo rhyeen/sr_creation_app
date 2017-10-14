@@ -75,3 +75,14 @@ exports.queryError = function(err, connection) {
   }
   return null;
 };
+
+exports.transactionError = function(err, connection) {
+  if (err) {
+    console.error("ERROR: Query transaction failed unexpectedly:\n" + err);
+    exports.forceConnectionRelease(connection);
+    const message = "Query transaction failed unexpectedly.";
+    const error = "QUERY_ERROR";
+    return new StatusError(message, 500, error);
+  }
+  return null;
+};
