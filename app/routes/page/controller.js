@@ -24,7 +24,7 @@ exports.createPage = function(req, res) {
     return res.status(400).send(`Page type: ${query_page_type} is unsupported.`);
   }
   model.createPage(link_id, page_type, page_name, user_id).then(function(page_id) {
-    return res.send(page_id);
+    return res.send({id: page_id});
   }, function(error) {
     return tools.responseWithError(error, res, null);
   });
