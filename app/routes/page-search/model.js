@@ -8,6 +8,10 @@ var exports = module.exports = {};
 exports.getSearchResults = function(user_id, search_query, search_type) {
   if (search_type === 'image') {
     return getImageSearchResults(user_id, search_query, search_type);
+  } else if (search_type === 'map') {
+    return getMapSearchResults(user_id, search_query);
+  } else if (search_type === 'map-image') {
+    return getMapImageSearchResults(user_id, search_query);
   } else {
     return getPageSearchResults(user_id, search_query, search_type);
   }
@@ -53,6 +57,69 @@ function getImageSearchResults(user_id, search_query, type) {
         return reject(mysql.connectionError(err, connection));
       }
       let query = "SELECT `page_images`.`image_id` AS `id`, `page_images`.`name` AS `name`, `page_images`.`caption` AS `caption`, `page_images`.`link` AS `link`, `page_images`.`thumbnail_link` AS `thumbnail_link`, `page_images`.`source` AS `source` FROM `page_images` INNER JOIN `page_id_bind` ON `page_images`.`image_id` = `page_id_bind`.`bound_id` INNER JOIN `page_auth` ON `page_auth`.`page_id` = `page_id_bind`.`page_id` WHERE `page_auth`.`user_id` = ? AND `page_GET` = 1 AND `page_images`.`name` LIKE" + connection.escape('%' + search_query + '%');
+      let params = [
+        user_id
+      ];
+      connection.query(query, params, function(err, rows, fields) {
+        if (mysql.queryError(err, connection)) {
+          return reject(mysql.queryError(err, connection));
+        }
+        if (!rows || rows.length <= 0) {
+          mysql.forceConnectionRelease(connection);
+          return resolve([]);
+        }
+        for (let row of rows) {
+          row['thumbnail'] = {
+            'link': row['thumbnail_link']
+          };
+          delete row['thumbnail_link'];
+        }
+        mysql.forceConnectionRelease(connection);
+        return resolve(rows);
+      });
+    });
+  });
+}
+
+function getMapSearchResults(user_id, search_query) {
+  return new Promise(function(resolve, reject) {
+    mysql.getConnection(function(err, connection) {
+      if (mysql.connectionError(err, connection)) {
+        return reject(mysql.connectionError(err, connection));
+      }
+      let query = "SELECT `page_maps`.`map_id` AS `id`, `page_maps`.`name` AS `name`, `page_maps`.`properties` AS `properties`, `page_maps`.`text` AS `text` FROM `page_maps` INNER JOIN `page_id_bind` ON `page_maps`.`map_id` = `page_id_bind`.`bound_id` INNER JOIN `page_auth` ON `page_auth`.`page_id` = `page_id_bind`.`page_id` WHERE `page_auth`.`user_id` = ? AND `page_GET` = 1 AND `page_maps`.`name` LIKE" + connection.escape('%' + search_query + '%');
+      let params = [
+        user_id
+      ];
+      connection.query(query, params, function(err, rows, fields) {
+        if (mysql.queryError(err, connection)) {
+          return reject(mysql.queryError(err, connection));
+        }
+        if (!rows || rows.length <= 0) {
+          mysql.forceConnectionRelease(connection);
+          return resolve([]);
+        }
+        for (let i = 0; i < rows.length; i++) {
+          let properties = rows[i]['properties'];
+          if (properties) {
+            properties = JSON.parse(properties);
+          }
+          rows[i]['properties'] = properties;
+        }
+        mysql.forceConnectionRelease(connection);
+        return resolve(rows);
+      });
+    });
+  });
+}
+
+function getMapImageSearchResults(user_id, search_query) {
+  return new Promise(function(resolve, reject) {
+    mysql.getConnection(function(err, connection) {
+      if (mysql.connectionError(err, connection)) {
+        return reject(mysql.connectionError(err, connection));
+      }
+      let query = "SELECT `map_images`.`image_id` AS `id`, `map_images`.`name` AS `name`, `map_images`.`caption` AS `caption`, `map_images`.`link` AS `link`, `map_images`.`thumbnail_link` AS `thumbnail_link`, `map_images`.`source` AS `source` FROM `map_images` INNER JOIN `page_id_bind` ON `map_images`.`image_id` = `page_id_bind`.`bound_id` INNER JOIN `page_auth` ON `page_auth`.`page_id` = `page_id_bind`.`page_id` WHERE `page_auth`.`user_id` = ? AND `page_GET` = 1 AND `map_images`.`name` LIKE" + connection.escape('%' + search_query + '%');
       let params = [
         user_id
       ];

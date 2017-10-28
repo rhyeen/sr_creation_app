@@ -2,13 +2,18 @@ let model = require("./model");
 let tools = require("../../lib/tools");
 var exports = module.exports = {};
 
-exports.updatePageSummary = function(req, res) {
+exports.updateMapSummary = function(req, res) {
   let page_id = req.page_id;
+  if (!page_id || !req.params.mapId) {
+    return res.status(400).send({
+      message: 'Page id and Map id must be provided to update map summary'
+    });
+  }
   try {
-    let page_name = getPageName(req);
-    let summary_text = getPageSummaryText(req);
-    let summary_properties = getPageSummaryProperties(req);
-    model.updatePageSummary(page_id, page_name, summary_text, summary_properties).then(function(data) {
+    let map_name = getMapName(req);
+    let summary_text = getMapSummaryText(req);
+    let summary_properties = getMapSummaryProperties(req);
+    model.updateMapSummary(page_id, map_id, map_name, summary_text, summary_properties).then(function() {
       res.send('Success');
       return;
     }, function(error) {
@@ -21,7 +26,7 @@ exports.updatePageSummary = function(req, res) {
   }
 };
 
-function getPageName(req) {
+function getMapName(req) {
   let body = getBody(req);
   if ('name' in body && body['name']) {
     return body['name'];
@@ -29,23 +34,23 @@ function getPageName(req) {
   throw getMissingBodyPropertyError('name');
 }
 
-function getPageSummaryText(req) {
-  let page_summary = getPageSummary(req);
-  if ('text' in page_summary && page_summary['text']) {
-    return page_summary['text'];
+function getMapSummaryText(req) {
+  let map_summary = getMapSummary(req);
+  if ('text' in map_summary && map_summary['text']) {
+    return map_summary['text'];
   }
   throw getMissingBodyPropertyError('summary.text');
 }
 
-function getPageSummaryProperties(req) {
-  let page_summary = getPageSummary(req);
-  if ('properties' in page_summary && page_summary['properties']) {
-    return page_summary['properties'];
+function getMapSummaryProperties(req) {
+  let map_summary = getMapSummary(req);
+  if ('properties' in map_summary && map_summary['properties']) {
+    return map_summary['properties'];
   }
   throw getMissingBodyPropertyError('summary.properties');
 }
 
-function getPageSummary(req) {
+function getMapSummary(req) {
   let body = getBody(req);
   if ('summary' in body && body['summary']) {
     return body['summary'];

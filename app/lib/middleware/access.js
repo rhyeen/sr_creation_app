@@ -10,19 +10,31 @@ exports.verifyUserHasAccess = function(req, res, next) {
     let page_id = getPageId(req);
     console.log(`page id: ${page_id}`);
     console.log(`user id: ${user_id}`);
-    req.page_id = page_id;
     if (!page_id) {
       // nothing to verify: the user can access a null page.
       next();
       return;
     }
     let request_method = getRequestMethod(req);
-    checkPageAuth(request_method, user_id, page_id).then(function(data) {
-      next();
-    }, function(error) {
-      tools.responseWithError(error, res, null);
-      return;
-    });
+    if (isMap(page_id)) {
+      checkMapAuth(request_method, user_id, page_id).then(function(data) {
+        req.map_id = page_id;
+        next();
+        return;
+      }, function(error) {
+        tools.responseWithError(error, res, null);
+        return;
+      });
+    } else {
+      req.page_id = page_id;
+      checkPageAuth(request_method, user_id, page_id).then(function(data) {
+        next();
+        return;
+      }, function(error) {
+        tools.responseWithError(error, res, null);
+        return;
+      });
+    }
   } catch (err) {
     let error = {
       status: 400,
@@ -46,12 +58,10 @@ function getUserId(req) {
 function getPageId(req) {
   // if none, then there is nothing to verify access against, and the user is most likely creating a new page.
   return req.query.id;
-  // @NOTE: zombie code.  Can remove, but keeping for now in case we want to ensure a request has a page id.
-  // let page_id = req.query.id;
-  // if (!page_id) {
-  //   throw new Error("Page Id must be provided in URL.");
-  // }
-  // return page_id;
+}
+
+function isMap(id) {
+  return id.startsWith("MP");
 }
 
 function getRequestMethod(req) {
@@ -88,5 +98,12 @@ function checkPageAuth(request_method, user_id, page_id) {
         return resolve();
       });
     });
+  });
+};
+
+function checkMapAuth(request_method, user_id, map_id) {
+  return new Promise(function(resolve, reject) {
+    console.log("@TODO: map ids not verified");
+    return resolve();
   });
 };

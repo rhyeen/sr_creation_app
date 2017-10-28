@@ -3,6 +3,7 @@ let mysql = require("../../lib/mysql-connection");
 let get_page_model = require("./get-page-model");
 let delete_page_model = require("./delete-page-model");
 let create_page_model = require("./create-page-model");
+let update_page_model = require("./update-page-model");
 
 let Promise = require("bluebird");
 
@@ -35,6 +36,13 @@ exports.forceGetPageId = function(page_id, user_id) {
         return resolve(rows[0]['page_id']);
       });
     });
+  });
+};
+
+exports.updateRelatedPagesOrder = function(pages, page_id) {
+  return new Promise(function(resolve, reject) {
+    update_page_model.updateRelatedPagesOrder(pages, page_id)
+    .then(() => resolve(), error => reject(error));
   });
 };
 

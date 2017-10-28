@@ -13,11 +13,11 @@ exports.addContent = function(page_id, content_insert_query, content_insert_para
       }
       tools.getUniqueId(content_type, content_table, content_identifier).then(function(content_id) {
         content_insert_params[content_id_params_index] = content_id;
-        connection.query(content_insert_query, content_insert_params, function(err, result, fields) {
+        let query = connection.query(content_insert_query, content_insert_params, function(err, result, fields) {
           if (mysql.queryError(err, connection)) {
             return reject(mysql.queryError(err, connection));
           }
-          let query = "INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, MAX(`order`) + 1 AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?";
+          let query = "INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, CASE WHEN MAX(`order`) IS NULL THEN 0 ELSE MAX(`order`) + 1 END AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?";
           let params = [
             page_id,
             content_id,
@@ -33,6 +33,7 @@ exports.addContent = function(page_id, content_insert_query, content_insert_para
             return resolve(content_id);
           });
         });
+        // console.log(query.sql);
       }, function(error) {
         mysql.forceConnectionRelease(connection);
         return reject(error);
@@ -99,11 +100,4 @@ exports.disableContent = function(page_id, content_id) {
       });
     });
   });
-};
-
-function cannotStringifyContentPartitionsError() {
-  return {
-    message: "Cannot convert content partitions into JSON object.",
-    status: 400
-  };
 };

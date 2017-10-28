@@ -1,6 +1,7 @@
 let tools = require("../../lib/tools");
 let mysql = require("../../lib/mysql-connection");
 let Promise = require("bluebird");
+let manage_content = require("../../lib/services/manage-content");
 
 var exports = module.exports = {};
 
@@ -145,7 +146,11 @@ function setPageContent(connection, page_id, defaults) {
   return new Promise(function(resolve, reject) {
     setPageDefault('details', connection, page_id, defaults).then(function(data) {
       setPageDefault('images', connection, page_id, defaults).then(function(data) {
-        resolve();
+        setPageDefault('maps', connection, page_id, defaults).then(function(data) {
+          resolve();
+        }, function(error) {
+          reject(error);
+        });
       }, function(error) {
         reject(error);
       });
@@ -159,12 +164,18 @@ function setPageDefault(content_type, connection, page_id, defaults) {
   let type;
   if (content_type == 'details') {
     type = 'DE';
-  } else {
+  } else if (content_type == 'images') {
     type = 'IM';
+  } else {
+    type = 'MP';
   }
-  let disabled = getDisabled(defaults, content_type);
-  let properties = getProperties(defaults, content_type);
   return new Promise(function(resolve, reject) {
+    // @NOTE: no need to insert it into the table: the content cannot exist here (even in admin page settings).  This is for things like maps, which are specific to locations.
+    if (!(content_type in defaults)) {
+      return resolve();
+    }
+    let disabled = getDisabled(defaults, content_type);
+    let properties = getProperties(defaults, content_type);
     let query = "INSERT INTO `page_content` (`page_id`, `type`, `properties`, `disabled`) VALUES (?, ?, ?, ?)";
     let params = [
       page_id,
@@ -288,7 +299,7 @@ function updateParentPageLinks(connection, new_page_id, page_type, parent_link_i
     if (!parent_link_id) {
       resolve();
     }
-    let query = "INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, MAX(`order`) + 1 AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?";
+    let query = "INSERT INTO `page_id_bind` (`page_id`, `bound_id`, `type`, `order`) SELECT ?, ?, ?, CASE WHEN MAX(`order`) IS NOT NULL THEN MAX(`order`) + 1 ELSE 0 END AS `order` FROM `page_id_bind` WHERE `page_id` = ? AND type = ?";
     let params = [
       parent_link_id,
       new_page_id,

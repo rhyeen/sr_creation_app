@@ -1,5 +1,7 @@
 let tools = require("../../lib/tools");
 let mysql = require("../../lib/mysql-connection");
+let StatusError = require("../../lib/error/status-error");
+
 let Promise = require("bluebird");
 
 var exports = module.exports = {};
@@ -318,7 +320,8 @@ function resolveCall() {
 function getLinkListSetterFunction(link_type) {
   let link_list_setter_functions = {
     'DE': setPageDetail,
-    'IM': setPageImage
+    'IM': setPageImage,
+    'MP': setPageMap
   };
   if (link_type in link_list_setter_functions) {
     return link_list_setter_functions[link_type];
@@ -354,10 +357,8 @@ function setPageDetail(connection, page, link_list_id, index, ignore) {
         return reject(mysql.queryError(err, connection));
       }
       if (rows.length <= 0) {
-        return reject({
-          status: 404,
-          message: `Unable to find ${link_list_id} details.`
-        });
+        const message = `Unable to find ${link_list_id} details.`;
+        return reject(new StatusError(message, 404));
       }
       let detail_data = rows[0];
       let detail = page['details']['list'][index];
@@ -379,6 +380,7 @@ function setPageDetail(connection, page, link_list_id, index, ignore) {
 function setPageImage(connection, page, link_list_id, index, ignore) {
   // only used to conform to abstract function standard (setPageLink needs it).
   ignore = null;
+  console.log('image: ' + link_list_id);
   return new Promise(function(resolve, reject) {
     let page_id = getPageId(page);
     let query = "SELECT * FROM `page_images` WHERE `image_id` = ? LIMIT 1";
@@ -391,10 +393,8 @@ function setPageImage(connection, page, link_list_id, index, ignore) {
         return reject(mysql.queryError(err, connection));
       }
       if (rows.length <= 0) {
-        return reject({
-          status: 404,
-          message: `Unable to find ${link_list_id} images.`
-        });
+        const message = `Unable to find ${link_list_id} images.`;
+        return reject(new StatusError(message, 404));
       }
       let image_data = rows[0];
       let image = page['images']['list'][index];
@@ -405,6 +405,41 @@ function setPageImage(connection, page, link_list_id, index, ignore) {
       image['thumbnail'] = {
         'link': image_data['thumbnail_link']
       }
+      return resolve(page);
+    });
+  });
+}
+
+function setPageMap(connection, page, link_list_id, index, ignore) {
+  // only used to conform to abstract function standard (setPageLink needs it).
+  ignore = null;
+  return new Promise(function(resolve, reject) {
+    let page_id = getPageId(page);
+    let query = "SELECT * FROM `page_maps` WHERE `map_id` = ? LIMIT 1";
+    let params = [
+      link_list_id
+    ];
+    connection.query(query, params, function(err, rows, fields) {
+      // @TODO: probably want to find a way to only fail if more than X% of all calls in Promise.all fail.  But, only if 500's.  Other types of failures shouldn't occur if the structure is valid.
+      if (mysql.queryError(err, connection)) {
+        return reject(mysql.queryError(err, connection));
+      }
+      if (rows.length <= 0) {
+        const message = `Unable to find ${link_list_id} maps.`;
+        return reject(new StatusError(message, 404));
+      }
+      let map_data = rows[0];
+      let map = page['maps']['list'][index];
+      map['name'] = map_data['name'];
+      let map_properties = map_data['properties'];
+      if (map_properties) {
+        map_properties = JSON.parse(map_properties);
+      }
+      let map_text = map_data['text'];
+      map['summary'] = {
+        'properties': map_properties,
+        'text': map_text
+      };
       return resolve(page);
     });
   });
@@ -423,10 +458,8 @@ function setPageLink(connection, page, link_list_id, index, page_type) {
         return reject(mysql.queryError(err, connection));
       }
       if (rows.length <= 0) {
-        return reject({
-          status: 404,
-          message: "Unable to find {0} page summary.".format(link_list_id)
-        });
+        const message = `Unable to find ${link_list_id} summary.`;
+        return reject(new StatusError(message, 404));
       }
       let page_link_data = rows[0];
       page_container = getPageContainerByType(page, page_type);
@@ -484,6 +517,12 @@ function setPageImagesContainer(page, data) {
   setupContainer(page, data, page[key]);
 }
 
+function setPageMapsContainer(page, data) {
+  let key = 'maps';
+  page[key] = {};
+  setupContainer(page, data, page[key]);
+}
+
 function setPageLinksContainer(page, data) {
   let key = 'pages';
   if (!(key in page)) {
@@ -521,7 +560,8 @@ function setupContainer(page, data, container) {
 function getContainerFunction(container_type) {
   let container_functions = {
     'DE': setPageDetailsContainer,
-    'IM': setPageImagesContainer
+    'IM': setPageImagesContainer,
+    'MP': setPageMapsContainer
   };
   if (container_type in container_functions) {
     return container_functions[container_type];
