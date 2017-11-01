@@ -10,10 +10,15 @@ exports.findPartitions = function(mark_down) {
     if (!mark_down) {
       return partitions;
     }
+    mark_down = cleanMarkdown(mark_down);
     recurseFindPartitions(mark_down, -1, partitions);
     return resolve(partitions);
   });
 };
+
+function cleanMarkdown(mark_down) {
+  return mark_down.replace(/(\r\n|\n|\r)/gm,"\n");
+}
 
 exports.renderMarkdown = function(partitions) {
   return new Promise(function(resolve, reject) {
@@ -58,13 +63,89 @@ function findNextClosingTag(text, opening_tag) {
 
 function addTextPartition(partitions, mark_down, index_marker, last_index) {
   var text,
-      partition;
+      textPartitions = [];
   text = getInBetweenText(mark_down, index_marker, last_index + 1);
-  partition = {
-    type: 'text',
-    text: text
+  recurseFindTextPartitions(text, textPartitions);
+  partitions.push.apply(partitions, textPartitions);
+}
+
+function recurseFindTextPartitions(text, textPartitions) {
+  if (!text) {
+    return;
+  }
+  const nextMarkdownIndicator = getNextMarkdownIndicator(text);
+  // no special markdown: just plain text
+  if (!nextMarkdownIndicator) {
+    textPartitions.push({
+      type: 'text',
+      text: text
+    });
+    return;
+  }
+  if (nextMarkdownIndicator.startIndex > 0) {
+    textPartitions.push({
+      type: 'text',
+      text: text.substring(0, nextMarkdownIndicator.startIndex)
+    });
+  }
+  textPartitions.push({
+    type: nextMarkdownIndicator.type,
+    text: nextMarkdownIndicator.text
+  });
+  if (nextMarkdownIndicator.endIndex === text.length - 1) {
+    return;
+  }
+  text = text.substring(nextMarkdownIndicator.endIndex + 1);
+  return recurseFindTextPartitions(text, textPartitions);
+}
+
+function getNextMarkdownIndicator(text) {
+  var closestMarkdownIndicator,
+      possibleMarkdownIndicator;
+  closestMarkdownIndicator = getLineBreakIndicator(text);
+  // START repeat: for every new type of indicator
+  possibleMarkdownIndicator = getHeaderIndicator(text);
+  if (possibleMarkdownIndicator && !closestMarkdownIndicator) {
+    closestMarkdownIndicator = possibleMarkdownIndicator;
+  } else if (possibleMarkdownIndicator && possibleMarkdownIndicator.startIndex < closestMarkdownIndicator.startIndex) {
+    closestMarkdownIndicator = possibleMarkdownIndicator;
+  }
+  // END repeat
+  return closestMarkdownIndicator;
+}
+
+function getLineBreakIndicator(text) {
+  var index = text.indexOf("\n");
+  if (index === -1) {
+    return null;
+  }
+  return {
+    startIndex: index,
+    endIndex: index,
+    type: 'break',
+    text: "\n"
   };
-  partitions.push(partition);
+}
+
+function getHeaderIndicator(text) {
+  // @TODO:
+  return null;
+  /* The reason why the only valid header indicator would be if it was
+     at the start of text is because the header has to either be
+     A) the first characters in the start of the mark_down or
+     B) the first characters immediately preceeding a linebreak (possible excluding spaces?)
+
+     Both A) and B) are a little challenging to prove. To prove (A), we could pass the original markdown down to check it.  To prove (B), we could pass the textPartitions to see if the latest was a 'break' type.
+  */
+  // var index = text.indexOf("# ");
+  // if (index !== 0) {
+  //   return null;
+  // }
+  // return {
+  //   startIndex: 0,
+  //   endIndex: 1
+  //   type: 'h1'
+  // };
 }
 
 function addTagPartition(partitions, mark_down, opening_tag, closing_tag) {
@@ -143,7 +224,7 @@ function getTagContent() {
 }
 
 function addAdditionalText(text, partition) {
-  if (partition.type == 'text') {
+  if (partition.type !== 'tag') {
     return text;
   }
   return '{' + text + '}(' + partition.id + ')';
