@@ -1,4 +1,5 @@
 let model = require("./model");
+let tagModel = require("../tag/model");
 let tools = require("../../lib/tools");
 var exports = module.exports = {};
 
@@ -7,10 +8,24 @@ exports.addDetail = function(req, res) {
   try {
     let detail_name = getDetailName(req);
     let content_mark_down = getContentMarkdown(req);
-    let content_partitions = getContentPartitions(req);
-    model.addDetail(page_id, detail_name, content_mark_down, content_partitions).then(function(detail_id) {
-      res.send(detail_id);
-      return;
+    tagModel.findPartitions(content_mark_down).then(function(partitions) {
+      tagModel.renderMarkdown(partitions).then(function(mark_down) {
+        model.addDetail(page_id, detail_name, mark_down, partitions).then(function(detail_id) {
+          return res.send({
+            id: detail_id,
+            content: {
+              mark_down,
+              partitions
+            }
+          });
+        }, function(error) {
+          tools.responseWithError(error, res, null);
+          return;
+        });
+      }, function(error) {
+        tools.responseWithError(error, res, null);
+        return;
+      });
     }, function(error) {
       tools.responseWithError(error, res, null);
       return;
@@ -27,10 +42,25 @@ exports.updateDetail = function(req, res) {
     let detail_id = getDetailId(req);
     let detail_name = getDetailName(req);
     let content_mark_down = getContentMarkdown(req);
-    let content_partitions = getContentPartitions(req);
-    model.updateDetail(page_id, detail_id, detail_name, content_mark_down, content_partitions).then(function(data) {
-      res.send('Success');
-      return;
+    tagModel.findPartitions(content_mark_down).then(function(partitions) {
+      tagModel.renderMarkdown(partitions).then(function(mark_down) {
+        model.updateDetail(page_id, detail_id, detail_name, mark_down, partitions).then(function(data) {
+          res.send({
+            message: 'Success',
+            content: {
+              mark_down,
+              partitions
+            }
+          });
+          return;
+        }, function(error) {
+          tools.responseWithError(error, res, null);
+          return;
+        });
+      }, function(error) {
+        tools.responseWithError(error, res, null);
+        return;
+      });
     }, function(error) {
       tools.responseWithError(error, res, null);
       return;

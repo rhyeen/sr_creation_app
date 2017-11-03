@@ -11,7 +11,7 @@ exports.addImage = function(req, res) {
     let image_link = getImageLink(req);
     let thumbnail_link = getThumbnailLink(req);
     model.addImage(page_id, image_name, image_caption, image_source, image_link, thumbnail_link).then(function(image_id) {
-      res.send(image_id);
+      res.send({id: image_id});
       return;
     }, function(error) {
       tools.responseWithError(error, res, null);

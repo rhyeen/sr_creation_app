@@ -36,7 +36,7 @@ exports.createMap = function(req, res) {
     return tools.responseWithError(error, res, null);
   }
   create_map_model.createMap(req.page_id, req.body).then(function(map_id) {
-    return res.send(map_id);
+    return res.send({id: map_id});
   }, function(error) {
     return tools.responseWithError(error, res, null);
   });
